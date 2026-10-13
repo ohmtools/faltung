@@ -1,5 +1,8 @@
 # Faltungs-Animator
 
+> **Hinweis:** Dieses Projekt wurde mit KI geschrieben: Code, Konfiguration und Dokumentation
+> sind mit [Claude Code](https://claude.com/claude-code) entstanden.
+
 Interaktive Web-App, die die Faltung zweier Funktionen animiert:
 
 $$(f * g)(t) = \int_{-\infty}^{\infty} f(\tau)\, g(t-\tau)\, \mathrm d\tau$$
