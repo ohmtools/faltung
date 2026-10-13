@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } f
 
 import type { ConvolutionResult } from '@/lib/convolution'
 import type { Playhead } from '@/lib/playhead'
-import { drawPlot, readPlotColors, tFromX, type PlotColors } from '@/lib/plot'
+import { drawPlot, readPlotColors, tFromX, toCanvasColor, type PlotColors } from '@/lib/plot'
 
 type Props = {
   result: ConvolutionResult
@@ -50,8 +50,8 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
       lastVH = vh
       // schmal: höher als breit-halbe, damit der Plot auf dem Telefon lesbar bleibt;
       // niedrig (Telefon quer): Plot + Bedienleiste sollen gemeinsam auf den Bildschirm passen
-      const ideal = Math.round(W * (W < 600 ? 0.72 : 0.5))
-      const H = Math.max(190, Math.min(480, ideal, vh - 150, Math.round(vh * 0.5)))
+      const ideal = Math.round(W * (W < 600 ? 0.62 : 0.5))
+      const H = Math.max(190, Math.min(480, ideal, vh - 150, Math.round(vh * 0.46)))
       const dpr = window.devicePixelRatio || 1
       size.current = { W, H, dpr }
       cv.width = Math.round(W * dpr)
@@ -161,7 +161,9 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
         out.height = cv.height
         const ctx = out.getContext('2d')
         if (!ctx) return resolve(null)
-        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim()
+        ctx.fillStyle = toCanvasColor(
+          getComputedStyle(document.documentElement).getPropertyValue('--card').trim(),
+        )
         ctx.fillRect(0, 0, out.width, out.height)
         ctx.drawImage(cv, 0, 0)
         out.toBlob(resolve, 'image/png')

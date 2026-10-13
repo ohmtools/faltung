@@ -1,10 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@fontsource/ibm-plex-sans/400.css";
-@import "@fontsource/ibm-plex-sans/500.css";
-@import "@fontsource/ibm-plex-sans/600.css";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
 @import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -17,69 +12,62 @@
   padding-right: max(1rem, env(safe-area-inset-right));
 }
 
+/* ---------- shadcn/ui Standard-Theme (neutral) ---------- */
+
 :root {
   --radius: 0.625rem;
-  --background: #f4f6f8;
-  --foreground: #161a20;
-  --card: #ffffff;
-  --card-foreground: #161a20;
-  --popover: #ffffff;
-  --popover-foreground: #161a20;
-  --primary: #1f5fd6;
-  --primary-foreground: #ffffff;
-  --secondary: #eceff3;
-  --secondary-foreground: #161a20;
-  --muted: #eceff3;
-  --muted-foreground: #5a6370;
-  --accent: #e7eefb;
-  --accent-foreground: #161a20;
-  --destructive: #c0362a;
-  --border: #dde2e8;
-  --input: #dde2e8;
-  --ring: #1f5fd6;
-
-  /* Plotfarben */
-  --plot-grid: #e8ecf0;
-  --plot-axis: #8d96a3;
-  --plot-f: #1f5fd6;
-  --plot-g: #d33a2b;
-  --plot-area: rgba(240, 190, 20, 0.55);
-  --plot-area-solid: #f0be14;
-  --plot-conv: #161a20;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
 }
 
 .dark {
-  --background: #11141a;
-  --foreground: #e8ebf0;
-  --card: #191d24;
-  --card-foreground: #e8ebf0;
-  --popover: #191d24;
-  --popover-foreground: #e8ebf0;
-  --primary: #5c95ff;
-  --primary-foreground: #0b1020;
-  --secondary: #232832;
-  --secondary-foreground: #e8ebf0;
-  --muted: #232832;
-  --muted-foreground: #98a1ae;
-  --accent: #232a38;
-  --accent-foreground: #e8ebf0;
-  --destructive: #ff7b6e;
-  --border: #2a3039;
-  --input: #323945;
-  --ring: #5c95ff;
-
-  --plot-grid: #222730;
-  --plot-axis: #56606c;
-  --plot-f: #5c95ff;
-  --plot-g: #ff6b5b;
-  --plot-area: rgba(240, 190, 20, 0.42);
-  --plot-area-solid: #f0be14;
-  --plot-conv: #f1f3f6;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
 }
 
 @theme inline {
-  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -102,6 +90,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
   --color-plot-f: var(--plot-f);
   --color-plot-g: var(--plot-g);
   --color-plot-area: var(--plot-area);
@@ -112,35 +105,78 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html {
-    color-scheme: light;
-  }
-  html.dark {
-    color-scheme: dark;
-  }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  code {
-    @apply font-mono;
-  }
-  /* kein Doppeltipp-Zoom und kein grauer Tap-Blitz auf iOS */
-  button,
-  a,
-  [role='slider'],
-  [role='combobox'] {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
+    @apply bg-background text-foreground;
   }
 }
 
-.katex {
-  font-size: 1.08em;
+/* ---------- App-spezifisch ---------- */
+
+/* Datenfarben des Plots (Tailwind-Palette); Raster, Achsen und Ergebnis nutzen die Theme-Farben */
+:root {
+  --plot-f: oklch(0.546 0.245 262.881); /* blue-600 */
+  --plot-g: oklch(0.577 0.245 27.325); /* red-600 */
+  --plot-area: oklch(0.828 0.189 84.429 / 0.5); /* amber-400 */
+  --plot-area-solid: oklch(0.828 0.189 84.429);
+  --plot-grid: var(--border);
+  --plot-axis: var(--muted-foreground);
+  --plot-conv: var(--foreground);
+}
+.dark {
+  --plot-f: oklch(0.707 0.165 254.624); /* blue-400 */
+  --plot-g: oklch(0.704 0.191 22.216); /* red-400 */
+  --plot-area: oklch(0.828 0.189 84.429 / 0.4);
 }
 
-/* KaTeX-CSS liegt außerhalb der Tailwind-Layer und gewinnt daher gegen Utilities */
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Touch-Geräte (iPad, iPhone): ausreichend große Ziele und 16 px in Eingabefeldern,
+   damit Safari beim Antippen nicht zoomt. Steht außerhalb der Layer und überschreibt so
+   die Standardgrößen der shadcn-Komponenten, ohne sie zu verändern. */
+button,
+a,
+[role="slider"],
+[role="combobox"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (pointer: coarse) {
+  /* alle Buttons: Radix-Trigger mit asChild ersetzen data-slot="button" durch ihr eigenes */
+  button:not([role="tab"]),
+  a[data-slot="button"],
+  [data-slot="input"] {
+    min-height: 2.75rem;
+  }
+  button[aria-label] {
+    min-width: 2.75rem;
+  }
+  [data-slot="input"] {
+    font-size: 16px;
+  }
+  [data-slot="select-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="dropdown-menu-item"] {
+    min-height: 2.75rem;
+  }
+  [data-slot="slider"] {
+    padding-block: 0.75rem;
+  }
+  [data-slot="slider-thumb"] {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+}
+
+/* KaTeX-Formel linksbündig (KaTeX-CSS liegt außerhalb der Tailwind-Layer) */
 .tex-left .katex-display {
   margin: 0.5rem 0;
 }

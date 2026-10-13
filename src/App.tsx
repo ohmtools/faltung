@@ -1,5 +1,6 @@
-import { Check, ImageDown, Link2 } from 'lucide-react'
+import { ImageDown, Link2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Controls } from '@/components/controls'
 import { ConvolutionPlot, type ConvolutionPlotHandle } from '@/components/convolution-plot'
@@ -11,7 +12,9 @@ import { SiteHeader } from '@/components/site-header'
 import { Tex } from '@/components/tex'
 import { Transport } from '@/components/transport'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Kbd, KbdGroup } from '@/components/ui/kbd'
+import { Toaster } from '@/components/ui/sonner'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useTheme } from '@/hooks/use-theme'
@@ -254,13 +257,11 @@ export default function App() {
     [settings, applyNow],
   )
 
-  const [copied, setCopied] = useState(false)
   const share = useCallback(async () => {
     const url = window.location.origin + window.location.pathname + settingsToHash(settings)
     try {
       await navigator.clipboard.writeText(url)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
+      toast.success('Link kopiert', { description: 'Der Link öffnet genau diese Ansicht.' })
     } catch {
       window.prompt('Link zum Kopieren:', url)
     }
@@ -307,33 +308,36 @@ export default function App() {
             </p>
           </div>
 
-          <Card className="gap-3 py-3 sm:py-4">
-            <CardContent className="flex flex-col gap-3 px-3 sm:px-4">
-              <div className="flex items-start justify-between gap-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Animation</CardTitle>
+              <CardDescription>
                 <Legend convInT={result.convInT} />
-                <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" onClick={share} aria-label="Link kopieren">
-                        {copied ? <Check /> : <Link2 />}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{copied ? 'Link kopiert' : 'Link zu dieser Ansicht kopieren'}</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" onClick={savePng} aria-label="Als Bild speichern">
-                        <ImageDown />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Als PNG speichern</TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
+              </CardDescription>
+              <CardAction className="flex items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={share} aria-label="Link kopieren">
+                      <Link2 />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Link zu dieser Ansicht kopieren</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={savePng} aria-label="Als Bild speichern">
+                      <ImageDown />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Als PNG speichern</TooltipContent>
+                </Tooltip>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
               <ConvolutionPlot ref={plotRef} result={result} playhead={playhead} theme={resolved} />
               <Readout result={result} playhead={playhead} />
               <Transport result={result} playhead={playhead} />
-              <p className="text-xs text-muted-foreground sm:hidden">
+              <p className="text-sm text-muted-foreground sm:hidden">
                 g wird gespiegelt über f geschoben; die gelbe Fläche ergibt das Faltungsergebnis. Zum
                 Spulen im Plot waagerecht ziehen.
               </p>
@@ -360,10 +364,11 @@ export default function App() {
       <footer className="border-t">
         <div className="px-safe mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 py-6 text-sm text-muted-foreground">
           <span>Faltungs-Animator – rechnet vollständig im Browser, auch offline.</span>
-          <span className="font-mono text-xs">mathjs · KaTeX · React</span>
+          <span>mathjs · KaTeX · React · shadcn/ui</span>
         </div>
       </footer>
       <PwaPrompt />
+      <Toaster theme={resolved} position="bottom-right" />
     </TooltipProvider>
   )
 }
@@ -372,14 +377,14 @@ function Swatch({ className, box }: { className: string; box?: boolean }) {
   return (
     <i
       aria-hidden
-      className={cn('inline-block w-4.5 rounded-sm', box ? 'h-3' : 'h-[3px]', className)}
+      className={cn('inline-block w-4 rounded-sm', box ? 'h-3' : 'h-0.5', className)}
     />
   )
 }
 
 function Legend({ convInT }: { convInT: boolean }) {
   return (
-    <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground sm:text-sm">
+    <div className="flex flex-wrap gap-x-4 gap-y-1">
       <span className="inline-flex items-center gap-1.5">
         <Swatch box className="bg-plot-area" />
         Fläche unter f(τ)·g(t−τ)
@@ -400,34 +405,40 @@ function Legend({ convInT }: { convInT: boolean }) {
   )
 }
 
-const KEYS: [string, string][] = [
-  ['Leertaste', 'Abspielen / Pause'],
-  ['← / →', 'Schritt zurück / vor (mit Umschalt: größer)'],
-  ['Pos1 / Ende', 'Zum Anfang / Ende'],
-  ['Ziehen / Tippen', 'Zeitpunkt t im Plot setzen'],
+const KEYS: [string[], string][] = [
+  [['Leertaste'], 'Abspielen / Pause'],
+  [['←', '→'], 'Schritt zurück / vor (mit ⇧: größer)'],
+  [['Pos1', 'Ende'], 'Zum Anfang / Ende'],
+  [['Ziehen', 'Tippen'], 'Zeitpunkt t im Plot setzen'],
 ]
 
 function Shortcuts() {
   return (
-    <section aria-labelledby="keys-h" className="flex flex-col gap-3">
-      <h2 id="keys-h" className="text-xl font-semibold tracking-tight">
-        Bedienung
-      </h2>
-      <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
-        {KEYS.map(([k, v]) => (
-          <div key={k} className="flex items-baseline gap-3">
-            <dt>
-              <kbd className="rounded border bg-muted px-1.5 py-0.5 font-mono text-xs">{k}</kbd>
-            </dt>
-            <dd className="text-sm text-muted-foreground">{v}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="max-w-[70ch] text-sm text-muted-foreground">
-        Die Einstellungen stehen in der Adresszeile; ein kopierter Link öffnet genau diese Ansicht.
-        Über „Installieren“ oben (auf iPhone und iPad: Teilen → „Zum Home-Bildschirm“) lässt sich die
-        Seite als App installieren und funktioniert danach auch ohne Internetverbindung.
-      </p>
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>Bedienung</CardTitle>
+        <CardDescription>
+          Die Einstellungen stehen in der Adresszeile; ein kopierter Link öffnet genau diese Ansicht.
+          Über „Installieren“ oben (auf iPhone und iPad: Teilen → „Zum Home-Bildschirm“) lässt sich die
+          Seite als App installieren und funktioniert danach auch ohne Internetverbindung.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+          {KEYS.map(([keys, v]) => (
+            <div key={v} className="flex items-center gap-3">
+              <dt>
+                <KbdGroup>
+                  {keys.map((k) => (
+                    <Kbd key={k}>{k}</Kbd>
+                  ))}
+                </KbdGroup>
+              </dt>
+              <dd className="text-sm text-muted-foreground">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </CardContent>
+    </Card>
   )
 }

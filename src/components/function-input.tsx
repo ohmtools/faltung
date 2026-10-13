@@ -15,11 +15,11 @@ type Props = {
 export function FunctionInput({ id, name, value, onChange, error, tex }: Props) {
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <Label htmlFor={id} className="font-mono text-sm text-muted-foreground">
+      <Label htmlFor={id}>
         <i
           aria-hidden
           className={cn(
-            'inline-block h-[3px] w-4.5 rounded-sm',
+            'inline-block h-0.5 w-4 rounded-sm',
             name === 'f' ? 'bg-plot-f' : 'bg-plot-g',
           )}
         />
@@ -36,11 +36,11 @@ export function FunctionInput({ id, name, value, onChange, error, tex }: Props) 
         enterKeyHint="done"
         aria-invalid={error ? true : undefined}
         aria-describedby={`${id}-msg`}
-        className="h-10 font-mono"
+        className="font-mono"
       />
       <div id={`${id}-msg`} className="min-h-7 text-sm" aria-live="polite">
         {error ? (
-          <span className="font-mono text-xs text-destructive">{error}</span>
+          <span className="text-destructive">{error}</span>
         ) : tex ? (
           <span className="text-muted-foreground">
             <Tex math={`${name}(t) = ${tex}`} />

@@ -23,7 +23,7 @@ const FUNCS: { code: string; tex: string; text: string }[] = [
 export function FunctionReference() {
   return (
     <section id="funktionen" className="scroll-mt-20">
-      <Card className="gap-4">
+      <Card>
         <CardHeader>
           <CardTitle>Funktionsreferenz</CardTitle>
           <CardDescription className="max-w-[70ch]">
@@ -44,7 +44,7 @@ export function FunctionReference() {
             <TableBody>
               {FUNCS.map((f) => (
                 <TableRow key={f.code}>
-                  <TableCell className="align-top font-mono text-xs whitespace-normal sm:text-sm">
+                  <TableCell className="align-top font-mono whitespace-normal">
                     {f.code}
                   </TableCell>
                   <TableCell className="align-top whitespace-normal text-muted-foreground">

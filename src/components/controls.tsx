@@ -2,7 +2,7 @@ import { ArrowLeftRight } from 'lucide-react'
 
 import { FunctionInput } from '@/components/function-input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -38,9 +38,7 @@ function NumberField({
 }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
-      <Label htmlFor={id} className="text-xs tracking-wider text-muted-foreground uppercase">
-        {label}
-      </Label>
+      <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
         type="text"
@@ -52,7 +50,6 @@ function NumberField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={invalid || undefined}
-        className="h-10 font-mono"
       />
     </div>
   )
@@ -71,11 +68,12 @@ export function Controls({
 }: Props) {
   const Tbad = !(parseNumber(settings.T) > 0)
   return (
-    <Card className="gap-5">
+    <Card>
       <CardHeader>
         <CardTitle>Funktionen</CardTitle>
+        <CardDescription>Variable t, Parameter T – siehe Funktionsreferenz unten.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-5">
+      <CardContent className="flex flex-col gap-6">
         <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-start">
           <FunctionInput
             id="f-in"
@@ -89,7 +87,7 @@ export function Controls({
             variant="outline"
             size="sm"
             onClick={onSwap}
-            className="min-w-10 justify-self-start md:mt-6 pointer-coarse:md:mt-7"
+            className="justify-self-start md:mt-5.5"
             aria-label="f und g tauschen"
           >
             <ArrowLeftRight />
@@ -109,7 +107,7 @@ export function Controls({
           <div className="flex flex-wrap gap-3">
             <NumberField
               id="t-per"
-              label="T ="
+              label="T"
               value={settings.T}
               onChange={(T) => onChange({ T })}
               invalid={Tbad}
@@ -132,7 +130,7 @@ export function Controls({
             />
           </div>
           {(rangeError || Tbad) && (
-            <p className="font-mono text-xs text-destructive" aria-live="polite">
+            <p className="text-sm text-destructive" aria-live="polite">
               {Tbad ? 'T muss größer als 0 sein.' : rangeError}
             </p>
           )}
@@ -141,16 +139,13 @@ export function Controls({
         <Separator />
 
         <div className="flex flex-col gap-3">
-          <h3 className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-            Beispiele
-          </h3>
+          <h3 className="text-sm font-medium">Beispiele</h3>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p) => (
               <Button
                 key={p.name}
                 variant="outline"
                 size="sm"
-                className="rounded-full"
                 onClick={() => onPreset(p)}
               >
                 {p.name}

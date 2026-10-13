@@ -51,12 +51,12 @@ export function Explanation() {
       <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s, i) => (
           <li key={s.title}>
-            <Card className="h-full gap-3 py-5">
-              <CardHeader className="px-5">
-                <CardDescription className="font-mono text-xs">Schritt {i + 1}</CardDescription>
+            <Card className="h-full">
+              <CardHeader>
+                <CardDescription>Schritt {i + 1}</CardDescription>
                 <CardTitle>{s.title}</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3 px-5">
+              <CardContent className="flex flex-col gap-3">
                 <Tex math={s.tex} display className="text-sm" />
                 <p className="text-sm text-muted-foreground">{s.text}</p>
               </CardContent>
@@ -64,7 +64,7 @@ export function Explanation() {
           </li>
         ))}
       </ol>
-      <Card className="gap-4">
+      <Card>
         <CardHeader>
           <CardTitle>Wichtige Eigenschaften</CardTitle>
           <CardDescription>
@@ -76,7 +76,7 @@ export function Explanation() {
           <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             {PROPS.map((p) => (
               <div key={p.name} className="flex flex-col gap-1">
-                <dt className="text-xs tracking-wider text-muted-foreground uppercase">{p.name}</dt>
+                <dt className="text-sm text-muted-foreground">{p.name}</dt>
                 <dd className="overflow-x-auto">
                   <Tex math={p.tex} />
                 </dd>

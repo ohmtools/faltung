@@ -26,10 +26,10 @@ installierbar**; nach dem ersten Aufruf funktioniert sie auch offline.
 | Bereich | Bibliothek |
 | --- | --- |
 | Build | [Vite](https://vite.dev) + TypeScript |
-| UI | React 19, [shadcn/ui](https://ui.shadcn.com) (Radix), Tailwind CSS v4, lucide-react |
+| UI | React 19, [shadcn/ui](https://ui.shadcn.com) im Standardstil (Theme „neutral“, Radix), Tailwind CSS v4, lucide-react, Sonner |
 | Formeln | [mathjs](https://mathjs.org) als Parser; der Syntaxbaum wird über eine Whitelist in eine native JS-Funktion übersetzt (schnell genug für 60 fps, kein beliebiger Code) |
 | Mathe-Satz | [KaTeX](https://katex.org) |
-| PWA | [vite-plugin-pwa](https://vite-pwa-org.netlify.app) (Workbox), Schriften lokal über Fontsource |
+| PWA | [vite-plugin-pwa](https://vite-pwa-org.netlify.app) (Workbox) |
 
 Wichtige Dateien:
 
