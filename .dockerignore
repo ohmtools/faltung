@@ -1,0 +1,10 @@
+# Wird von podman und docker beim Image-Bau gelesen
+.git
+node_modules
+dist
+dist-ssr
+*.local
+*.log
+.vscode
+.idea
+.DS_Store

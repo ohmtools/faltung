@@ -58,5 +58,80 @@ Weitere shadcn-Komponenten lassen sich mit `npx shadcn@latest add <name>` ergän
 `dist/` ist eine rein statische Seite und lässt sich auf jedem Static-Host ablegen. Für ein
 Unterverzeichnis den Basispfad setzen, z. B. `BASE_PATH=/faltung/ npm run build`.
 
+### Release und Container-Image
+
+Wird auf GitHub ein Release **veröffentlicht**, führt `.github/workflows/release.yml` Lint und Tests
+aus und
+
+1. hängt den Build als `faltung-<tag>.zip` (mit `.sha256`) an das Release,
+2. veröffentlicht ein Container-Image unter `ghcr.io/ohmtools/faltung` mit den Tags
+   `<tag>`, `1.2.3`, `1.2` und – außer bei Pre-releases – `latest`.
+
+Das Image (`Containerfile`) wird in zwei Stufen gebaut: Node baut die App, ins fertige Image kommen
+nur `dist/` und [static-web-server](https://static-web-server.net) – kein Node, kein Quellcode
+(~11 MB Image, ~15 MB RAM). Es läuft als `nobody` und liefert auf Port 8080 aus. Die Header
+stehen in `static-web-server.toml`: gehashte Dateien unter `assets/` werden ein Jahr gecacht
+(`immutable`), alles andere (`index.html`, `sw.js`, Manifest, Icons) prüft der Browser bei jedem
+Aufruf per `Last-Modified` nach. Komprimierung und TLS übernimmt der Reverse Proxy.
+
+```bash
+podman build -t faltung . && podman run --rm -p 8080:8080 faltung   # lokal ausprobieren
+```
+
+Liegt die App hinter dem Reverse Proxy in einem Unterverzeichnis, die Repository-Variable
+`BASE_PATH` (z. B. `/faltung/`) setzen; sie gilt für ZIP und Image.
+
+### Betrieb mit Podman und Caddy
+
+Das Repository ist privat, also auch das Image. Einmalig auf dem Server mit einem
+[Personal Access Token (classic)](https://github.com/settings/tokens) mit dem Recht
+`read:packages` anmelden – die Datei in `~/.config` bleibt anders als die Standardablage über
+Neustarts erhalten:
+
+```bash
+podman login ghcr.io --username <github-name> --authfile ~/.config/containers/auth.json
+```
+
+Als Quadlet-Dienst (`~/.config/containers/systemd/faltung.container`):
+
+```ini
+[Container]
+ContainerName=faltung
+Image=ghcr.io/ohmtools/faltung:latest
+PublishPort=127.0.0.1:8080:8080
+AutoUpdate=registry
+ReadOnly=true
+DropCapability=all
+NoNewPrivileges=true
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
+```
+
+```bash
+systemctl --user daemon-reload && systemctl --user start faltung
+systemctl --user enable --now podman-auto-update.timer   # holt neue Releases automatisch (täglich)
+```
+
+`podman auto-update` lädt das Image neu, sobald `latest` auf ein neues Release zeigt, und startet
+den Dienst neu; sofort geht es mit `podman auto-update` von Hand. Ein Rollback ist ein Wechsel auf
+einen festen Tag, z. B. `Image=ghcr.io/ohmtools/faltung:1.2.0`.
+
+Caddyfile:
+
+```caddyfile
+faltung.example.org {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8080
+}
+```
+
+Läuft Caddy selbst in einem Container, beide in ein gemeinsames Podman-Netzwerk hängen
+(`Network=` in beiden Quadlets) und `reverse_proxy faltung:8080` verwenden; `PublishPort` entfällt
+dann.
+
 Der Workflow `.github/workflows/pages.yml` veröffentlicht die App auf GitHub Pages, sobald in den
 Repository-Einstellungen unter *Settings → Pages* als Quelle „GitHub Actions“ gewählt ist.

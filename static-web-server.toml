@@ -1,0 +1,27 @@
+# Konfiguration von static-web-server im Container (https://static-web-server.net)
+# TLS und Komprimierung übernimmt der Reverse Proxy davor.
+
+[general]
+host = "0.0.0.0"
+port = 8080
+root = "/public"
+log-level = "warn"
+compression = false
+directory-listing = false
+# Eigene Cache-Regeln statt der eingebauten (die würden auch sw.js lange cachen)
+cache-control-headers = false
+
+[advanced]
+
+# Grundsätzlich bei jedem Aufruf per Last-Modified prüfen (index.html, sw.js, Manifest, Icons) …
+[[advanced.headers]]
+source = "**"
+[advanced.headers.headers]
+Cache-Control = "no-cache"
+X-Content-Type-Options = "nosniff"
+
+# … außer den gehashten Build-Dateien, die sich nie ändern
+[[advanced.headers]]
+source = "/assets/**"
+[advanced.headers.headers]
+Cache-Control = "public, max-age=31536000, immutable"
