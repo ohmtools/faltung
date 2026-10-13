@@ -132,6 +132,3 @@ faltung.example.org {
 Läuft Caddy selbst in einem Container, beide in ein gemeinsames Podman-Netzwerk hängen
 (`Network=` in beiden Quadlets) und `reverse_proxy faltung:8080` verwenden; `PublishPort` entfällt
 dann.
-
-Der Workflow `.github/workflows/pages.yml` veröffentlicht die App auf GitHub Pages, sobald in den
-Repository-Einstellungen unter *Settings → Pages* als Quelle „GitHub Actions“ gewählt ist.
