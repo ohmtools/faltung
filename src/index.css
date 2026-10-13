@@ -1,0 +1,133 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "katex/dist/katex.min.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: #f4f6f8;
+  --foreground: #161a20;
+  --card: #ffffff;
+  --card-foreground: #161a20;
+  --popover: #ffffff;
+  --popover-foreground: #161a20;
+  --primary: #1f5fd6;
+  --primary-foreground: #ffffff;
+  --secondary: #eceff3;
+  --secondary-foreground: #161a20;
+  --muted: #eceff3;
+  --muted-foreground: #5a6370;
+  --accent: #e7eefb;
+  --accent-foreground: #161a20;
+  --destructive: #c0362a;
+  --border: #dde2e8;
+  --input: #dde2e8;
+  --ring: #1f5fd6;
+
+  /* Plotfarben */
+  --plot-grid: #e8ecf0;
+  --plot-axis: #8d96a3;
+  --plot-f: #1f5fd6;
+  --plot-g: #d33a2b;
+  --plot-area: rgba(240, 190, 20, 0.55);
+  --plot-area-solid: #f0be14;
+  --plot-conv: #161a20;
+}
+
+.dark {
+  --background: #11141a;
+  --foreground: #e8ebf0;
+  --card: #191d24;
+  --card-foreground: #e8ebf0;
+  --popover: #191d24;
+  --popover-foreground: #e8ebf0;
+  --primary: #5c95ff;
+  --primary-foreground: #0b1020;
+  --secondary: #232832;
+  --secondary-foreground: #e8ebf0;
+  --muted: #232832;
+  --muted-foreground: #98a1ae;
+  --accent: #232a38;
+  --accent-foreground: #e8ebf0;
+  --destructive: #ff7b6e;
+  --border: #2a3039;
+  --input: #323945;
+  --ring: #5c95ff;
+
+  --plot-grid: #222730;
+  --plot-axis: #56606c;
+  --plot-f: #5c95ff;
+  --plot-g: #ff6b5b;
+  --plot-area: rgba(240, 190, 20, 0.42);
+  --plot-area-solid: #f0be14;
+  --plot-conv: #f1f3f6;
+}
+
+@theme inline {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-plot-f: var(--plot-f);
+  --color-plot-g: var(--plot-g);
+  --color-plot-area: var(--plot-area);
+  --color-plot-conv: var(--plot-conv);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  code {
+    @apply font-mono;
+  }
+}
+
+.katex {
+  font-size: 1.08em;
+}
+
+/* KaTeX-CSS liegt außerhalb der Tailwind-Layer und gewinnt daher gegen Utilities */
+.tex-left .katex-display {
+  margin: 0.5rem 0;
+}
+.tex-left .katex-display > .katex {
+  text-align: left;
+}
