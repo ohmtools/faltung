@@ -40,9 +40,18 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
     const box = boxRef.current
     const cv = canvasRef.current
     if (!box || !cv) return
-    const resize = () => {
+    let lastVH = 0
+    const resize = (ev?: Event) => {
       const W = box.clientWidth
-      const H = Math.max(260, Math.min(480, Math.round(W * 0.5)))
+      const vh = window.innerHeight
+      // iOS ändert innerHeight beim Ein-/Ausblenden der Leisten während des Scrollens;
+      // darauf nicht reagieren, nur auf echte Größenwechsel (Drehen, Fenstergröße)
+      if (ev?.type === 'resize' && W === size.current.W && Math.abs(vh - lastVH) < 150) return
+      lastVH = vh
+      // schmal: höher als breit-halbe, damit der Plot auf dem Telefon lesbar bleibt;
+      // niedrig (Telefon quer): Plot + Bedienleiste sollen gemeinsam auf den Bildschirm passen
+      const ideal = Math.round(W * (W < 600 ? 0.72 : 0.5))
+      const H = Math.max(190, Math.min(480, ideal, vh - 150, Math.round(vh * 0.5)))
       const dpr = window.devicePixelRatio || 1
       size.current = { W, H, dpr }
       cv.width = Math.round(W * dpr)
@@ -50,10 +59,14 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
       cv.style.height = H + 'px'
       drawRef.current()
     }
-    const ro = new ResizeObserver(resize)
+    const ro = new ResizeObserver(() => resize())
     ro.observe(box)
+    window.addEventListener('resize', resize)
     resize()
-    return () => ro.disconnect()
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', resize)
+    }
   }, [])
 
   // Neu zeichnen bei Änderungen von t, Ergebnis oder Thema
@@ -74,26 +87,56 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
     return () => mo.disconnect()
   }, [theme])
 
-  // Ziehen im Plot setzt t
+  // Ziehen im Plot setzt t. Maus/Stift: sofort. Touch: senkrechtes Wischen scrollt die Seite
+  // (touch-action: pan-y), waagerechtes Wischen spult, kurzes Tippen setzt t.
   useEffect(() => {
     const cv = canvasRef.current
     if (!cv) return
-    let dragging = false
-    const setFromEvent = (ev: PointerEvent) => {
+    let active = false
+    let scrubbing = false
+    let x0 = 0
+    let y0 = 0
+    const setFromX = (clientX: number) => {
       const rect = cv.getBoundingClientRect()
-      playhead.setT(tFromX(resultRef.current, size.current.W, ev.clientX - rect.left))
+      playhead.setT(tFromX(resultRef.current, size.current.W, clientX - rect.left))
+    }
+    const startScrub = (ev: PointerEvent) => {
+      scrubbing = true
+      playhead.setPlaying(false)
+      setFromX(ev.clientX)
     }
     const down = (ev: PointerEvent) => {
-      dragging = true
-      cv.setPointerCapture(ev.pointerId)
-      playhead.setPlaying(false)
-      setFromEvent(ev)
+      if (ev.pointerType === 'mouse' && ev.button !== 0) return
+      active = true
+      scrubbing = false
+      x0 = ev.clientX
+      y0 = ev.clientY
+      if (ev.pointerType !== 'touch') {
+        cv.setPointerCapture(ev.pointerId)
+        startScrub(ev)
+      }
     }
     const move = (ev: PointerEvent) => {
-      if (dragging) setFromEvent(ev)
+      if (!active) return
+      if (scrubbing) {
+        setFromX(ev.clientX)
+        return
+      }
+      const dx = Math.abs(ev.clientX - x0)
+      const dy = Math.abs(ev.clientY - y0)
+      if (dx > 6 && dx > dy) {
+        try {
+          cv.setPointerCapture(ev.pointerId)
+        } catch {
+          /* Zeiger schon weg */
+        }
+        startScrub(ev)
+      } else if (dy > 10) active = false // senkrecht: die Seite scrollt
     }
-    const up = () => {
-      dragging = false
+    const up = (ev: PointerEvent) => {
+      if (active && !scrubbing && ev.type === 'pointerup') startScrub(ev) // Tippen
+      active = false
+      scrubbing = false
     }
     cv.addEventListener('pointerdown', down)
     cv.addEventListener('pointermove', move)
@@ -129,7 +172,7 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
     <div ref={boxRef} className="relative w-full">
       <canvas
         ref={canvasRef}
-        className="block w-full cursor-ew-resize touch-none"
+        className="block w-full cursor-ew-resize touch-pan-y select-none [-webkit-touch-callout:none]"
         role="img"
         aria-label="Animation der Faltung: f(τ), gespiegeltes und verschobenes g(t−τ), Produktfläche und Faltungsergebnis"
       />

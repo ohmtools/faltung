@@ -8,6 +8,14 @@
 @import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark *));
+/* Niedrige Bildschirme, z. B. iPhone quer */
+@custom-variant short (@media (max-height: 500px));
+
+/* Seitenabstand, der bei viewport-fit=cover die Notch (iPhone quer) freihält */
+@utility px-safe {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
 
 :root {
   --radius: 0.625rem;
@@ -117,6 +125,14 @@
   }
   code {
     @apply font-mono;
+  }
+  /* kein Doppeltipp-Zoom und kein grauer Tap-Blitz auf iOS */
+  button,
+  a,
+  [role='slider'],
+  [role='combobox'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

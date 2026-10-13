@@ -5,9 +5,27 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-/** Liefert eine Installationsfunktion, sobald der Browser die App als installierbar meldet. */
+/** iPhone/iPad (iPadOS meldet sich als Mac, hat aber Touch). */
+function detectIOS() {
+  const ua = navigator.userAgent
+  return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+}
+
+function isStandalone() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  )
+}
+
+/**
+ * Installationsmöglichkeit der Web-App.
+ * - Chromium-Browser: echter Installationsdialog über beforeinstallprompt
+ * - iOS/iPadOS: kein solches Ereignis; dort braucht es eine Anleitung (Teilen → Zum Home-Bildschirm)
+ */
 export function useInstallPrompt() {
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [iosHint] = useState(() => detectIOS() && !isStandalone())
 
   useEffect(() => {
     const onPrompt = (e: Event) => {
@@ -30,5 +48,5 @@ export function useInstallPrompt() {
     setEvt(null)
   }, [evt])
 
-  return { canInstall: evt !== null, install }
+  return { canInstall: evt !== null, install, iosHint }
 }

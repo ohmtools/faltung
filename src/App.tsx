@@ -20,6 +20,7 @@ import { bind, compileFormula, FormulaError, type CompiledFormula } from '@/lib/
 import { Playhead } from '@/lib/playhead'
 import {
   DEFAULT_SETTINGS,
+  parseNumber,
   settingsFromHash,
   settingsToHash,
   type Preset,
@@ -43,9 +44,9 @@ function tryCompile(src: string): Compiled {
 type Parts = { f: CompiledFormula; g: CompiledFormula; Tp: number; a: number; b: number }
 
 function parseRange(s: Settings) {
-  const Tp = parseFloat(s.T)
-  const a = parseFloat(s.a)
-  const b = parseFloat(s.b)
+  const Tp = parseNumber(s.T)
+  const a = parseNumber(s.a)
+  const b = parseNumber(s.b)
   const TpOk = Number.isFinite(Tp) && Tp > 0
   let rangeError: string | null = null
   if (!Number.isFinite(a) || !Number.isFinite(b)) rangeError = 'Bitte Zahlen für den Bereich eingeben.'
@@ -268,6 +269,16 @@ export default function App() {
   const savePng = useCallback(async () => {
     const blob = await plotRef.current?.toBlob()
     if (!blob) return
+    const file = new File([blob], 'faltung.png', { type: 'image/png' })
+    const touch = window.matchMedia('(pointer: coarse)').matches
+    if (touch && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Faltung' })
+        return
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return
+      }
+    }
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -279,29 +290,28 @@ export default function App() {
   return (
     <TooltipProvider>
       <SiteHeader theme={theme} setTheme={setTheme} />
-      <main className="mx-auto flex max-w-5xl flex-col gap-12 px-4 pt-6 pb-16">
+      <main className="px-safe mx-auto flex max-w-5xl flex-col gap-12 pt-5 pb-16 sm:pt-6">
         <section id="animator" className="flex scroll-mt-20 flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+            <h1 className="text-xl font-semibold tracking-tight text-balance sm:text-3xl">
               Faltung zweier Funktionen
             </h1>
             <Tex
               display
-              className="tex-left -mx-1 px-1"
+              className="tex-left -mx-1 px-1 text-[0.85rem] sm:text-base"
               math="(f*g)(t) = \int_{-\infty}^{\infty} f(\tau)\,g(t-\tau)\,\mathrm d\tau"
             />
-            <p className="max-w-[70ch] text-muted-foreground">
-              Gib zwei Funktionen ein und sieh zu, wie g gespiegelt über f geschoben wird. Die gelbe
-              Fläche unter dem Produkt ergibt Punkt für Punkt das Faltungsergebnis. Zum Spulen in den
-              Plot klicken und ziehen.
+            <p className="hidden max-w-[70ch] text-muted-foreground sm:block">
+              g wird gespiegelt über f geschoben; die gelbe Fläche unter dem Produkt ergibt Punkt für
+              Punkt das Faltungsergebnis. Zum Spulen im Plot waagerecht ziehen.
             </p>
           </div>
 
           <Card className="gap-3 py-3 sm:py-4">
             <CardContent className="flex flex-col gap-3 px-3 sm:px-4">
-              <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-2">
                 <Legend convInT={result.convInT} />
-                <div className="flex items-center gap-1">
+                <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon-sm" onClick={share} aria-label="Link kopieren">
@@ -323,6 +333,10 @@ export default function App() {
               <ConvolutionPlot ref={plotRef} result={result} playhead={playhead} theme={resolved} />
               <Readout result={result} playhead={playhead} />
               <Transport result={result} playhead={playhead} />
+              <p className="text-xs text-muted-foreground sm:hidden">
+                g wird gespiegelt über f geschoben; die gelbe Fläche ergibt das Faltungsergebnis. Zum
+                Spulen im Plot waagerecht ziehen.
+              </p>
             </CardContent>
           </Card>
 
@@ -344,7 +358,7 @@ export default function App() {
         <Shortcuts />
       </main>
       <footer className="border-t">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-muted-foreground">
+        <div className="px-safe mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 py-6 text-sm text-muted-foreground">
           <span>Faltungs-Animator – rechnet vollständig im Browser, auch offline.</span>
           <span className="font-mono text-xs">mathjs · KaTeX · React</span>
         </div>
@@ -365,7 +379,7 @@ function Swatch({ className, box }: { className: string; box?: boolean }) {
 
 function Legend({ convInT }: { convInT: boolean }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
+    <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground sm:text-sm">
       <span className="inline-flex items-center gap-1.5">
         <Swatch box className="bg-plot-area" />
         Fläche unter f(τ)·g(t−τ)
@@ -390,7 +404,7 @@ const KEYS: [string, string][] = [
   ['Leertaste', 'Abspielen / Pause'],
   ['← / →', 'Schritt zurück / vor (mit Umschalt: größer)'],
   ['Pos1 / Ende', 'Zum Anfang / Ende'],
-  ['Klicken + Ziehen', 'Zeitpunkt t im Plot setzen'],
+  ['Ziehen / Tippen', 'Zeitpunkt t im Plot setzen'],
 ]
 
 function Shortcuts() {
@@ -411,8 +425,8 @@ function Shortcuts() {
       </dl>
       <p className="max-w-[70ch] text-sm text-muted-foreground">
         Die Einstellungen stehen in der Adresszeile; ein kopierter Link öffnet genau diese Ansicht.
-        Über das Browsermenü (bzw. „Installieren“ oben) lässt sich die Seite als App installieren und
-        funktioniert danach auch ohne Internetverbindung.
+        Über „Installieren“ oben (auf iPhone und iPad: Teilen → „Zum Home-Bildschirm“) lässt sich die
+        Seite als App installieren und funktioniert danach auch ohne Internetverbindung.
       </p>
     </section>
   )

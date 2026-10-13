@@ -33,6 +33,7 @@ export function FunctionInput({ id, name, value, onChange, error, tex }: Props) 
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
+        enterKeyHint="done"
         aria-invalid={error ? true : undefined}
         aria-describedby={`${id}-msg`}
         className="h-10 font-mono"

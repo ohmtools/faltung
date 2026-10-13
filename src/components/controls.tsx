@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { PRESETS, type Preset, type Settings } from '@/lib/presets'
+import { parseNumber, PRESETS, type Preset, type Settings } from '@/lib/presets'
 
 type Props = {
   settings: Settings
@@ -26,14 +26,15 @@ function NumberField({
   value,
   onChange,
   invalid,
-  min,
+  signed,
 }: {
   id: string
   label: string
   value: string
   onChange: (v: string) => void
   invalid?: boolean
-  min?: number
+  /** negative Werte erlaubt → volle Tastatur, da der iPhone-Ziffernblock kein Minus hat */
+  signed?: boolean
 }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -42,10 +43,12 @@ function NumberField({
       </Label>
       <Input
         id={id}
-        type="number"
-        inputMode="decimal"
-        step={0.5}
-        min={min}
+        type="text"
+        inputMode={signed ? 'text' : 'decimal'}
+        enterKeyHint="done"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={invalid || undefined}
@@ -66,7 +69,7 @@ export function Controls({
   gTex,
   rangeError,
 }: Props) {
-  const Tbad = !(parseFloat(settings.T) > 0)
+  const Tbad = !(parseNumber(settings.T) > 0)
   return (
     <Card className="gap-5">
       <CardHeader>
@@ -86,7 +89,7 @@ export function Controls({
             variant="outline"
             size="sm"
             onClick={onSwap}
-            className="justify-self-start md:mt-6"
+            className="min-w-10 justify-self-start md:mt-6 pointer-coarse:md:mt-7"
             aria-label="f und g tauschen"
           >
             <ArrowLeftRight />
@@ -110,7 +113,6 @@ export function Controls({
               value={settings.T}
               onChange={(T) => onChange({ T })}
               invalid={Tbad}
-              min={0.001}
             />
             <NumberField
               id="x-min"
@@ -118,6 +120,7 @@ export function Controls({
               value={settings.a}
               onChange={(a) => onChange({ a })}
               invalid={!!rangeError}
+              signed
             />
             <NumberField
               id="x-max"
@@ -125,6 +128,7 @@ export function Controls({
               value={settings.b}
               onChange={(b) => onChange({ b })}
               invalid={!!rangeError}
+              signed
             />
           </div>
           {(rangeError || Tbad) && (

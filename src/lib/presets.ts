@@ -29,6 +29,12 @@ export const PRESETS: Preset[] = [
   { name: 'Rechteck ∗ Dirac-Kamm', f: 'rect(2t/T)', g: 'delta(t) + delta(t-T) + delta(t-2T)', a: -1, b: 3 },
 ]
 
+/** Zahl aus einer Eingabe; akzeptiert Dezimalkomma und typografisches Minus. */
+export function parseNumber(s: string): number {
+  const v = s.trim().replace(',', '.').replace(/[−–]/g, '-')
+  return v === '' ? NaN : Number(v)
+}
+
 export const DEFAULT_SETTINGS: Settings = { f: 'rect(t/T)', g: 'rect(t/T)', T: '1', a: '-2', b: '2' }
 
 /** Zustand ↔ URL-Hash, damit sich Konfigurationen als Link teilen lassen. */

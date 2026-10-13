@@ -27,7 +27,7 @@ export function PwaPrompt() {
   return (
     <div
       role="status"
-      className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-4 z-50 mx-auto flex max-w-md items-center gap-3 rounded-lg border bg-popover p-3 text-sm text-popover-foreground shadow-lg sm:left-auto"
+      className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-[max(1rem,env(safe-area-inset-left))] z-50 mx-auto flex max-w-md items-center gap-3 rounded-lg border bg-popover p-3 text-sm text-popover-foreground shadow-lg sm:left-auto"
     >
       {needRefresh ? <RefreshCw className="size-4 shrink-0" /> : <WifiOff className="size-4 shrink-0" />}
       <span className="flex-1">
