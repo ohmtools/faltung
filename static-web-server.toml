@@ -1,26 +1,40 @@
 # Konfiguration von static-web-server im Container (https://static-web-server.net)
-# TLS und Komprimierung übernimmt der Reverse Proxy davor.
+# Das Image bringt alle Header mit, die die App braucht; der Reverse Proxy davor
+# übernimmt nur TLS und was dazugehört (HSTS).
 
 [general]
 host = "0.0.0.0"
 port = 8080
 root = "/public"
 log-level = "warn"
-compression = false
+compression = true
 directory-listing = false
 # Eigene Cache-Regeln statt der eingebauten (die würden auch sw.js lange cachen)
 cache-control-headers = false
 
 [advanced]
 
-# Grundsätzlich bei jedem Aufruf per Last-Modified prüfen (index.html, sw.js, Manifest, Icons) …
+# Jede Antwort: bei jedem Aufruf per Last-Modified prüfen (index.html, sw.js,
+# Manifest, Icons) und die Seite abschotten. Kein Server, keine Drittanbieter:
+# alles kommt vom eigenen Ursprung. 'unsafe-eval', weil src/lib/formula.ts die
+# geprüfte Formel per new Function übersetzt; 'unsafe-inline' bei Styles für
+# die style-Attribute von KaTeX; data: bei Schriften, weil Vite kleine
+# KaTeX-Schriften ins CSS einbettet. Inline-Scripts bleiben verboten (public/theme.js).
 [[advanced.headers]]
 source = "**"
 [advanced.headers.headers]
 Cache-Control = "no-cache"
+Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+Cross-Origin-Opener-Policy = "same-origin"
+Cross-Origin-Embedder-Policy = "require-corp"
+Cross-Origin-Resource-Policy = "same-origin"
+Permissions-Policy = "accelerometer=(), browsing-topics=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), hid=(), magnetometer=(), microphone=(), midi=(), payment=(), serial=(), usb=()"
+Referrer-Policy = "strict-origin-when-cross-origin"
 X-Content-Type-Options = "nosniff"
+X-Frame-Options = "DENY"
+X-Permitted-Cross-Domain-Policies = "none"
 
-# … außer den gehashten Build-Dateien, die sich nie ändern
+# Die gehashten Build-Dateien ändern sich nie
 [[advanced.headers]]
 source = "/assets/**"
 [advanced.headers.headers]
