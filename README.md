@@ -1,7 +1,7 @@
 # Faltungs-Animator
 
-> **Hinweis:** Dieses Projekt wurde mit KI geschrieben: Code, Konfiguration und Dokumentation
-> sind mit [Claude Code](https://claude.com/claude-code) entstanden.
+> **Hinweis:** Dieses Projekt wurde größtenteils mit KI generiert: Code, Konfiguration und
+> Dokumentation sind mit [Claude Code](https://claude.com/claude-code) entstanden.
 
 Web-App, die die Faltung zweier Funktionen animiert:
 
@@ -40,20 +40,35 @@ Das Image ist privat; einmalig mit einem Token mit `read:packages` anmelden:
 podman login ghcr.io --username <github-name> --authfile ~/.config/containers/auth.json
 ```
 
-Quadlet (`~/.config/containers/systemd/faltung.container`):
+Rootless-Quadlet in `~/.config/containers/systemd/`, `faltung.network`:
+
+```ini
+[Network]
+```
+
+`faltung.container`:
 
 ```ini
 [Container]
 ContainerName=faltung
 Image=ghcr.io/ohmtools/faltung:latest
-PublishPort=127.0.0.1:8080:8080
 AutoUpdate=registry
+PublishPort=[::1]:8080:8080
+# Eigenes Netz; sonst wird die Gastadresse von pasta verwendet, was verwirren kann
+Network=faltung.network
+
 ReadOnly=true
-DropCapability=all
 NoNewPrivileges=true
+DropCapability=ALL
+User=65534
+Group=65534
 
 [Service]
 Restart=always
+MemoryMax=64M
+# Komprimierung läuft bei jedem Abruf: ein Erstbesuch kostet ~30–70 ms CPU
+CPUQuota=50%
+TasksMax=32
 
 [Install]
 WantedBy=default.target
@@ -69,9 +84,9 @@ Caddy:
 ```caddyfile
 faltung.example.org {
 	header ?Strict-Transport-Security "max-age=63072000; includeSubDomains"
-	reverse_proxy 127.0.0.1:8080
+	reverse_proxy [::1]:8080
 }
 ```
 
-Den Port auf `127.0.0.1` lassen, der Proxy ist der einzige Zugang. Rollback: festen Tag
+Den Port auf `[::1]` lassen, der Proxy ist der einzige Zugang. Rollback: festen Tag
 eintragen (`faltung:1.2.0`).

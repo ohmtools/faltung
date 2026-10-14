@@ -11,6 +11,9 @@ compression = true
 directory-listing = false
 # Eigene Cache-Regeln statt der eingebauten (die würden auch sw.js lange cachen)
 cache-control-headers = false
+# Ein Worker-Thread pro CPU plus höchstens so viele für Dateizugriffe: bleibt
+# auf Hosts mit bis zu ~20 CPUs unter TasksMax=32 aus dem Quadlet
+max-blocking-threads = 8
 
 [advanced]
 
