@@ -3,7 +3,9 @@
 # übernimmt nur TLS und was dazugehört (HSTS).
 
 [general]
-host = "0.0.0.0"
+# Alle Adressen, IPv6 und IPv4: in einem reinen IPv6-Containernetz wäre der
+# Server mit "0.0.0.0" (nur IPv4) nicht erreichbar
+host = "::"
 port = 8080
 root = "/public"
 log-level = "warn"
