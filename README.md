@@ -22,6 +22,7 @@ npm test          # Vitest
 npm run lint      # oxlint
 npm run build     # nach dist/ (Unterverzeichnis: BASE_PATH=/faltung/ npm run build)
 npm run icons     # PWA-Icons aus public/favicon.svg
+npm run release   # aktuelle Version taggen und den Tag pushen
 ```
 
 `npm install` richtet einen Git-Hook ein, der bei jedem Commit die Patch-Version erhöht
@@ -30,8 +31,10 @@ npm run icons     # PWA-Icons aus public/favicon.svg
 
 ## Deployment
 
-Ein GitHub-Release baut `faltung-<tag>.zip` und das Image `ghcr.io/ohmtools/faltung`
-(`<tag>`, `1.2`, `latest`). Für ein Unterverzeichnis die Repository-Variable `BASE_PATH` setzen.
+`npm run release` pusht den Tag `v<version>` aus `package.json`; der Workflow baut
+`faltung-<tag>.zip` und das Image `ghcr.io/ohmtools/faltung` (`<tag>`, `1.2`, `latest`) und
+veröffentlicht dann das Release (Releases sind unveränderlich, also nie von Hand auf GitHub
+anlegen). Für ein Unterverzeichnis die Repository-Variable `BASE_PATH` setzen.
 
 Das Image enthält nur `dist/` und [static-web-server](https://static-web-server.net) auf Port
 8080, läuft als `nobody` und sendet alle Header selbst (CSP, COOP/COEP/CORP,

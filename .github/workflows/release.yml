@@ -1,12 +1,16 @@
 name: Release
 
-# Läuft, sobald auf GitHub ein Release veröffentlicht wird:
-# 1. baut die App und hängt das Ergebnis als ZIP an das Release
-# 2. baut das Container-Image (Build + static-web-server) und veröffentlicht es in der
-#    GitHub Container Registry als ghcr.io/<owner>/<repo>
+# Läuft, sobald ein Versions-Tag gepusht wird (`npm run release` setzt den Tag
+# zur Version in package.json). Veröffentlichte Releases sind unveränderlich,
+# deshalb legt dieser Workflow das Release selbst an und veröffentlicht es zuletzt:
+# 1. Lint, Tests, Build; der Build als ZIP an einem Release-Entwurf
+# 2. das Container-Image (Build + static-web-server) in der GitHub Container
+#    Registry als ghcr.io/<owner>/<repo>
+# 3. veröffentlicht das Release
+# Ein Tag mit Bindestrich (v1.3.0-rc.1) ist ein Pre-release: kein „latest“-Image.
 on:
-  release:
-    types: [published]
+  push:
+    tags: ['v*']
 
 jobs:
   assets:
@@ -14,26 +18,38 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - name: Tag passt zur Version in package.json
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="v$(node -p 'require("./package.json").version')"
+          if [ "$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG, aber package.json hat $version"
+            exit 1
+          fi
       - run: npm ci
       - run: npm run lint
       - run: npm test
       - run: npm run build
         env:
           BASE_PATH: ${{ vars.BASE_PATH || '/' }}
-      - name: Paket schnüren und an das Release hängen
+      - name: Release-Entwurf mit dem Build als ZIP anlegen
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ github.ref_name }}
         run: |
           name="${GITHUB_REPOSITORY#*/}-${TAG//\//-}.zip"
           (cd dist && zip -qr9 "../$name" .)
           sha256sum "$name" > "$name.sha256"
-          gh release upload "$TAG" "$name" "$name.sha256" --repo "$GITHUB_REPOSITORY" --clobber
+          pre=""
+          [[ "$TAG" == *-* ]] && pre="--prerelease"
+          gh release create "$TAG" "$name" "$name.sha256" --repo "$GITHUB_REPOSITORY" \
+            --draft --verify-tag --title "$TAG" --generate-notes $pre
 
   image:
     # Erst veröffentlichen, wenn Lint und Tests oben durchgelaufen sind
@@ -43,15 +59,15 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
           # v1.2.3 → Tags v1.2.3, 1.2.3, 1.2; „latest“ nur für reguläre Releases (kein Pre-release)
@@ -60,8 +76,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
           flavor: |
-            latest=${{ !github.event.release.prerelease }}
-      - uses: docker/build-push-action@v6
+            latest=${{ !contains(github.ref_name, '-') }}
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: Containerfile
@@ -72,3 +88,15 @@ jobs:
             BASE_PATH=${{ vars.BASE_PATH || '/' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  publish:
+    # Zuletzt: das Release erscheint erst, wenn ZIP und Image beide da sind
+    needs: image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false

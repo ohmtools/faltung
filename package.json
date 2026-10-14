@@ -2,7 +2,7 @@
   "name": "faltung",
   "private": true,
   "license": "BSD-3-Clause",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,8 @@
     "lint": "oxlint",
     "icons": "pwa-assets-generator",
     "prepare": "npm run hooks",
-    "hooks": "git config core.hooksPath .githooks || true"
+    "hooks": "git config core.hooksPath .githooks || true",
+    "release": "git tag \"v$npm_package_version\" && git push origin \"v$npm_package_version\""
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
