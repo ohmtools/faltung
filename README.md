@@ -90,3 +90,7 @@ faltung.example.org {
 
 Den Port auf `[::1]` lassen, der Proxy ist der einzige Zugang. Rollback: festen Tag
 eintragen (`faltung:1.2.0`).
+
+## Lizenz
+
+BSD-3-Clause, siehe [LICENSE](LICENSE).
