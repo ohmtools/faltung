@@ -37,6 +37,16 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // KaTeX bringt ~20 Schriftschnitte mit, die meisten erscheinen nie: nicht alle
+        // vorab laden (~250 KB), sondern jeden beim ersten Gebrauch cachen
+        globIgnores: ['**/KaTeX_*'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.includes('/assets/KaTeX_'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'katex-fonts', expiration: { maxEntries: 40 } },
+          },
+        ],
       },
     }),
   ],
