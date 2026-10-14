@@ -86,6 +86,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BASE_PATH=${{ vars.BASE_PATH || '/' }}
+          # Ohne Provenance-Attestation: sonst zeigt ghcr Index, Image und Attestation als
+          # drei Versionen
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
