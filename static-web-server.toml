@@ -1,6 +1,6 @@
 # Konfiguration von static-web-server im Container (https://static-web-server.net)
 # Das Image bringt alle Header mit, die die App braucht; der Reverse Proxy davor
-# übernimmt nur TLS und was dazugehört (HSTS).
+# übernimmt TLS und was dazugehört (HSTS) und komprimiert (Caddy: encode).
 
 [general]
 # Alle Adressen, IPv6 und IPv4: in einem reinen IPv6-Containernetz wäre der
@@ -9,7 +9,8 @@ host = "::"
 port = 8080
 root = "/public"
 log-level = "warn"
-compression = true
+# Komprimieren übernimmt der Reverse Proxy
+compression = false
 directory-listing = false
 # Eigene Cache-Regeln statt der eingebauten (die würden auch sw.js lange cachen)
 cache-control-headers = false

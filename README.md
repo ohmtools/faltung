@@ -31,8 +31,8 @@ Ein GitHub-Release baut `faltung-<tag>.zip` und das Image `ghcr.io/ohmtools/falt
 
 Das Image enthält nur `dist/` und [static-web-server](https://static-web-server.net) auf Port
 8080, läuft als `nobody` und sendet alle Header selbst (CSP, COOP/COEP/CORP,
-Permissions-Policy, Caching, Komprimierung; siehe `static-web-server.toml`). Der Proxy ergänzt
-nur TLS und HSTS.
+Permissions-Policy, Caching; siehe `static-web-server.toml`). Der Proxy ergänzt TLS, HSTS und
+Komprimierung.
 
 Das Image ist privat; einmalig mit einem Token mit `read:packages` anmelden:
 
@@ -66,8 +66,7 @@ Group=65534
 [Service]
 Restart=always
 MemoryMax=64M
-# Komprimierung läuft bei jedem Abruf: ein Erstbesuch kostet ~30–70 ms CPU
-CPUQuota=50%
+CPUQuota=10%
 TasksMax=32
 
 [Install]
@@ -83,6 +82,7 @@ Caddy:
 
 ```caddyfile
 faltung.example.org {
+	encode zstd gzip
 	header ?Strict-Transport-Security "max-age=63072000; includeSubDomains"
 	reverse_proxy [::1]:8080
 }
