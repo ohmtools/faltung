@@ -363,7 +363,9 @@ export default function App() {
       </main>
       <footer className="border-t">
         <div className="px-safe mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 py-6 text-sm text-muted-foreground">
-          <span>Faltungs-Animator – rechnet vollständig im Browser, auch offline.</span>
+          <span>
+            Faltungs-Animator v{__APP_VERSION__} – rechnet vollständig im Browser, auch offline.
+          </span>
           <span>mathjs · KaTeX · React · shadcn/ui</span>
         </div>
       </footer>

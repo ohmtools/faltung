@@ -1,0 +1,5 @@
+#!/bin/sh
+# Erhöht die Patch-Version, außer der Commit ändert sie (scripts/bump-version.mjs).
+# Eingerichtet von `npm install` (`prepare` setzt core.hooksPath). Überspringen:
+# --no-verify oder SKIP_VERSION_BUMP=1.
+exec node scripts/bump-version.mjs

@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import fs from 'node:fs'
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
@@ -8,8 +9,17 @@ import { VitePWA } from 'vite-plugin-pwa'
 // Für Hosting in einem Unterverzeichnis BASE_PATH=/faltung/ setzen.
 const base = process.env.BASE_PATH ?? '/'
 
+// Steht im Footer, damit sich jeder Stand unterscheiden lässt; der Git-Hook
+// (scripts/bump-version.mjs) erhöht sie bei jedem Commit.
+const APP_VERSION: string = JSON.parse(
+  fs.readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf8'),
+).version
+
 export default defineConfig({
   base,
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   plugins: [
     react(),
     tailwindcss(),

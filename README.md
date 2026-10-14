@@ -24,6 +24,10 @@ npm run build     # nach dist/ (Unterverzeichnis: BASE_PATH=/faltung/ npm run bu
 npm run icons     # PWA-Icons aus public/favicon.svg
 ```
 
+`npm install` richtet einen Git-Hook ein, der bei jedem Commit die Patch-Version erhöht
+(`scripts/bump-version.mjs`); sie steht im Footer. Überspringen: `SKIP_VERSION_BUMP=1` oder
+`--no-verify`. Eine von Hand geänderte Version bleibt.
+
 ## Deployment
 
 Ein GitHub-Release baut `faltung-<tag>.zip` und das Image `ghcr.io/ohmtools/faltung`
