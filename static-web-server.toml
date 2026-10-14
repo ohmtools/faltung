@@ -16,15 +16,14 @@ cache-control-headers = false
 
 # Jede Antwort: bei jedem Aufruf per Last-Modified prüfen (index.html, sw.js,
 # Manifest, Icons) und die Seite abschotten. Kein Server, keine Drittanbieter:
-# alles kommt vom eigenen Ursprung. 'unsafe-eval', weil src/lib/formula.ts die
-# geprüfte Formel per new Function übersetzt; 'unsafe-inline' bei Styles für
-# die style-Attribute von KaTeX; data: bei Schriften, weil Vite kleine
+# alles kommt vom eigenen Ursprung. 'unsafe-inline' bei Styles für die
+# style-Attribute von KaTeX; data: bei Schriften, weil Vite kleine
 # KaTeX-Schriften ins CSS einbettet. Inline-Scripts bleiben verboten (public/theme.js).
 [[advanced.headers]]
 source = "**"
 [advanced.headers.headers]
 Cache-Control = "no-cache"
-Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+Content-Security-Policy = "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
 Cross-Origin-Opener-Policy = "same-origin"
 Cross-Origin-Embedder-Policy = "require-corp"
 Cross-Origin-Resource-Policy = "same-origin"

@@ -2,10 +2,10 @@ import { create, parseDependencies, type MathNode } from 'mathjs'
 
 /**
  * Formeln werden mit dem Parser von mathjs gelesen (implizite Multiplikation, Vergleiche,
- * Bedingungen, saubere Fehlermeldungen) und anschließend in eine native JS-Funktion übersetzt.
+ * Bedingungen, saubere Fehlermeldungen) und anschließend in verschachtelte JS-Funktionen übersetzt.
  * Der Übersetzer kennt nur eine feste Liste von Knotentypen, Operatoren, Funktionen und Symbolen –
  * alles andere wird abgelehnt. Dadurch ist die Auswertung schnell genug für 60 fps und
- * trotzdem sicher (kein beliebiger Code).
+ * trotzdem sicher (kein beliebiger Code, kein eval).
  */
 const math = create({ parseDependencies })
 
@@ -60,11 +60,67 @@ export const SCOPE_PULSE: Scope = {
 
 export class FormulaError extends Error {}
 
-const BINARY: Record<string, string> = {
-  add: '+', subtract: '-', multiply: '*', dotMultiply: '*', divide: '/', dotDivide: '/',
+/** Übersetzte Formel an der Stelle x; T und die Funktionsumgebung sind fest eingebunden. */
+type Ev = (x: number) => number
+/** Übersetzter Teilausdruck; k ist sein Wert, wenn er nicht von x abhängt. */
+type Out = { ev: Ev; k?: number }
+
+const konst = (v: number): Out => ({ ev: () => v, k: v })
+/** Hängt kein Teil von x ab (und ist der Knoten rein), wird er einmal vorab ausgerechnet. */
+const fold = (ev: Ev, parts: Out[], pure = true): Out =>
+  pure && parts.every((p) => p.k !== undefined) ? konst(ev(0)) : { ev }
+
+/** Grundrechenarten: allgemein, mit konstantem rechten und mit konstantem linken Operanden. */
+const ARITH: Record<string, [(a: Ev, b: Ev) => Ev, (a: Ev, k: number) => Ev, (k: number, b: Ev) => Ev]> = {
+  add: [(a, b) => (x) => a(x) + b(x), (a, k) => (x) => a(x) + k, (k, b) => (x) => k + b(x)],
+  subtract: [(a, b) => (x) => a(x) - b(x), (a, k) => (x) => a(x) - k, (k, b) => (x) => k - b(x)],
+  multiply: [(a, b) => (x) => a(x) * b(x), (a, k) => (x) => a(x) * k, (k, b) => (x) => k * b(x)],
+  divide: [(a, b) => (x) => a(x) / b(x), (a, k) => (x) => a(x) / k, (k, b) => (x) => k / b(x)],
 }
-const COMPARE: Record<string, string> = {
-  smaller: '<', larger: '>', smallerEq: '<=', largerEq: '>=', equal: '===', unequal: '!==',
+ARITH.dotMultiply = ARITH.multiply
+ARITH.dotDivide = ARITH.divide
+
+function arith(fn: string, a: Out, b: Out): Ev {
+  const [both, right, left] = ARITH[fn]
+  if (b.k !== undefined) return right(a.ev, b.k)
+  if (a.k !== undefined) return left(a.k, b.ev)
+  return both(a.ev, b.ev)
+}
+
+const BINARY: Record<string, (a: Ev, b: Ev, M: Scope) => Ev> = {
+  pow: (a, b, M) => {
+    const pow = M.pow
+    return (x) => pow(a(x), b(x))
+  },
+  mod: (a, b, M) => {
+    const mod = M.mod
+    return (x) => mod(a(x), b(x))
+  },
+  and: (a, b) => (x) => +(!!a(x) && !!b(x)),
+  or: (a, b) => (x) => +(!!a(x) || !!b(x)),
+  xor: (a, b) => (x) => +(!a(x) !== !b(x)),
+  smaller: (a, b) => (x) => +(a(x) < b(x)),
+  larger: (a, b) => (x) => +(a(x) > b(x)),
+  smallerEq: (a, b) => (x) => +(a(x) <= b(x)),
+  largerEq: (a, b) => (x) => +(a(x) >= b(x)),
+  equal: (a, b) => (x) => +(a(x) === b(x)),
+  unequal: (a, b) => (x) => +(a(x) !== b(x)),
+}
+BINARY.dotPow = BINARY.pow
+
+const COMPARE: Record<string, (a: number, b: number) => boolean> = {
+  smaller: (a, b) => a < b,
+  larger: (a, b) => a > b,
+  smallerEq: (a, b) => a <= b,
+  largerEq: (a, b) => a >= b,
+  equal: (a, b) => a === b,
+  unequal: (a, b) => a !== b,
+}
+
+const UNARY: Record<string, (a: Ev) => Ev> = {
+  unaryMinus: (a) => (x) => -a(x),
+  unaryPlus: (a) => a,
+  not: (a) => (x) => +!a(x),
 }
 
 function fnName(node: MathNode): string {
@@ -73,48 +129,53 @@ function fnName(node: MathNode): string {
   throw new FormulaError('Ungültiger Funktionsaufruf.')
 }
 
-/** Übersetzt einen mathjs-Knoten in einen JS-Ausdruck über (x, T, M). */
-function gen(node: MathNode): string {
+function call(f: (...args: number[]) => number, args: Ev[]): Ev {
+  if (args.length === 1) {
+    const [a] = args
+    return (x) => f(a(x))
+  }
+  if (args.length === 2) {
+    const [a, b] = args
+    return (x) => f(a(x), b(x))
+  }
+  return (x) => f(...args.map((a) => a(x)))
+}
+
+/**
+ * Übersetzt einen mathjs-Knoten in verschachtelte JS-Funktionen von x. Kein Quelltext, kein
+ * new Function: die Content-Security-Policy kommt so ohne 'unsafe-eval' aus.
+ */
+function gen(node: MathNode, T: number, M: Scope): Out {
   const n = node as unknown as Record<string, unknown>
   switch (node.type) {
     case 'ConstantNode': {
       const v = n.value
-      if (typeof v === 'number' && Number.isFinite(v)) return `(${v})`
-      if (typeof v === 'boolean') return v ? '1' : '0'
+      if (typeof v === 'number' && Number.isFinite(v)) return konst(v)
+      if (typeof v === 'boolean') return konst(v ? 1 : 0)
       throw new FormulaError('Nur Zahlen sind als Konstanten erlaubt.')
     }
     case 'SymbolNode': {
       const name = n.name as string
-      if (VARIABLES.has(name)) return 'x'
-      if (name === 'T') return 'T'
-      if (name in CONSTANTS) return `(${CONSTANTS[name]})`
+      if (VARIABLES.has(name)) return { ev: (x) => x }
+      if (name === 'T') return konst(T)
+      if (Object.hasOwn(CONSTANTS, name)) return konst(CONSTANTS[name])
       if (FUNCTIONS.has(name)) throw new FormulaError(`${name} braucht ein Argument, z. B. ${name}(t).`)
       throw new FormulaError(`Unbekannt: ${name}`)
     }
     case 'ParenthesisNode':
-      return `(${gen(n.content as MathNode)})`
+      return gen(n.content as MathNode, T, M)
     case 'OperatorNode': {
       const fn = n.fn as string
-      const args = (n.args as MathNode[]).map(gen)
-      if (fn in BINARY && args.length === 2) return `(${args[0]} ${BINARY[fn]} ${args[1]})`
-      if (fn in COMPARE && args.length === 2) return `+(${args[0]} ${COMPARE[fn]} ${args[1]})`
-      switch (fn) {
-        case 'unaryMinus': return `(-${args[0]})`
-        case 'unaryPlus': return `(+${args[0]})`
-        case 'pow':
-        case 'dotPow': return `M.pow(${args[0]}, ${args[1]})`
-        case 'mod': return `M.mod(${args[0]}, ${args[1]})`
-        case 'and': return `+(!!${args[0]} && !!${args[1]})`
-        case 'or': return `+(!!${args[0]} || !!${args[1]})`
-        case 'xor': return `+(!${args[0]} !== !${args[1]})`
-        case 'not': return `+(!${args[0]})`
-      }
+      const args = (n.args as MathNode[]).map((a) => gen(a, T, M))
+      if (Object.hasOwn(ARITH, fn) && args.length === 2) return fold(arith(fn, args[0], args[1]), args)
+      if (Object.hasOwn(BINARY, fn) && args.length === 2) return fold(BINARY[fn](args[0].ev, args[1].ev, M), args)
+      if (Object.hasOwn(UNARY, fn) && args.length === 1) return fold(UNARY[fn](args[0].ev), args)
       throw new FormulaError(`Operator „${n.op as string}“ wird nicht unterstützt.`)
     }
     case 'FunctionNode': {
       const name = fnName(node)
       if (!FUNCTIONS.has(name)) throw new FormulaError(`Unbekannte Funktion: ${name}`)
-      const args = (n.args as MathNode[]).map(gen)
+      const args = (n.args as MathNode[]).map((a) => gen(a, T, M))
       const [lo, hi] = ARITY[name] ?? [1, 1]
       if (args.length < lo || args.length > hi) {
         throw new FormulaError(
@@ -123,18 +184,36 @@ function gen(node: MathNode): string {
             : `${name} erwartet mindestens ${lo} Argument.`,
         )
       }
-      return `M.${name}(${args.join(', ')})`
+      // delta liest die Pulsbreite erst beim Aufruf, darf also nicht vorab ausgerechnet werden
+      const ev = call(M[name], args.map((a) => a.ev))
+      return fold(ev, args, name !== 'delta' && name !== 'dirac')
     }
-    case 'ConditionalNode':
-      return `(${gen(n.condition as MathNode)} ? ${gen(n.trueExpr as MathNode)} : ${gen(n.falseExpr as MathNode)})`
+    case 'ConditionalNode': {
+      const c = gen(n.condition as MathNode, T, M)
+      const a = gen(n.trueExpr as MathNode, T, M)
+      const b = gen(n.falseExpr as MathNode, T, M)
+      if (c.k !== undefined) return c.k ? a : b
+      const [ce, ae, be] = [c.ev, a.ev, b.ev]
+      return { ev: (x) => (ce(x) ? ae(x) : be(x)) }
+    }
     case 'RelationalNode': {
       // 0 < t < T
-      const params = (n.params as MathNode[]).map(gen)
-      const conds = (n.conditionals as string[]).map((c, i) => {
-        if (!(c in COMPARE)) throw new FormulaError('Vergleich wird nicht unterstützt.')
-        return `(${params[i]} ${COMPARE[c]} ${params[i + 1]})`
+      const params = (n.params as MathNode[]).map((p) => gen(p, T, M))
+      const cmps = (n.conditionals as string[]).map((c) => {
+        if (!Object.hasOwn(COMPARE, c)) throw new FormulaError('Vergleich wird nicht unterstützt.')
+        return COMPARE[c]
       })
-      return `+(${conds.join(' && ')})`
+      const evs = params.map((p) => p.ev)
+      const ev: Ev = (x) => {
+        let left = evs[0](x)
+        for (let i = 0; i < cmps.length; i++) {
+          const right = evs[i + 1](x)
+          if (!cmps[i](left, right)) return 0
+          left = right
+        }
+        return 1
+      }
+      return fold(ev, params)
     }
   }
   throw new FormulaError('Dieser Ausdruck wird nicht unterstützt.')
@@ -182,7 +261,9 @@ function texHandler(node: MathNode, options: object): string | undefined {
 }
 
 export type CompiledFormula = {
-  /** Auswertung (x, T, Funktionsumgebung). */
+  /** Funktion von x für festes T und eine Funktionsumgebung (SCOPE_REGULAR / SCOPE_PULSE). */
+  at: (T: number, M: Scope) => (x: number) => number
+  /** Auswertung an einer Stelle (für Einzelwerte; für viele Stellen at verwenden). */
   evaluate: (x: number, T: number, M: Scope) => number
   /** Enthält Dirac-Impulse? */
   hasImpulses: boolean
@@ -202,17 +283,16 @@ export function compileFormula(src: string): CompiledFormula {
       m ? `Formel fehlerhaft bei Zeichen ${m[1]}.` : 'Formel unvollständig oder fehlerhaft.',
     )
   }
-  const code = gen(node)
-  let raw: (x: number, T: number, M: Scope) => unknown
-  try {
-    raw = new Function('x', 'T', 'M', `"use strict"; return (${code});`) as typeof raw
-  } catch {
-    throw new FormulaError('Formel unvollständig oder fehlerhaft.')
+  const parsed = node
+  const at = (T: number, M: Scope) => {
+    const raw = gen(parsed, T, M).ev
+    return (x: number) => {
+      const v = raw(x)
+      return Number.isFinite(v) ? v : 0
+    }
   }
-  const evaluate = (x: number, T: number, M: Scope) => {
-    const v = +(raw(x, T, M) as number)
-    return Number.isFinite(v) ? v : 0
-  }
+  at(1, SCOPE_REGULAR) // Fehler schon hier melden, nicht erst beim Zeichnen
+  const evaluate = (x: number, T: number, M: Scope) => at(T, M)(x)
   let tex = ''
   try {
     tex = node.toTex({ handler: texHandler, implicit: 'hide', parenthesis: 'keep' })
@@ -226,7 +306,7 @@ export function compileFormula(src: string): CompiledFormula {
       if (name === 'delta' || name === 'dirac') hasImpulses = true
     }
   })
-  return { evaluate, hasImpulses, tex }
+  return { at, evaluate, hasImpulses, tex }
 }
 
 /** Eine an den Parameter T gebundene Funktion, wie sie Rechnung und Zeichnung brauchen. */
@@ -240,8 +320,8 @@ export type BoundFn = {
 
 export function bind(c: CompiledFormula, T: number): BoundFn {
   return {
-    reg: (x) => c.evaluate(x, T, SCOPE_REGULAR),
-    full: (x) => c.evaluate(x, T, SCOPE_PULSE),
+    reg: c.at(T, SCOPE_REGULAR),
+    full: c.at(T, SCOPE_PULSE),
     imp: c.hasImpulses,
   }
 }
