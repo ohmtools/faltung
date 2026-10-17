@@ -1,7 +1,7 @@
+import { Swatch } from '@/components/swatch'
+import { Tex } from '@/components/tex'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tex } from '@/components/tex'
-import { cn } from '@/lib/utils'
 
 type Props = {
   id: string
@@ -16,13 +16,7 @@ export function FunctionInput({ id, name, value, onChange, error, tex }: Props) 
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <Label htmlFor={id}>
-        <i
-          aria-hidden
-          className={cn(
-            'inline-block h-0.5 w-4 rounded-sm',
-            name === 'f' ? 'bg-plot-f' : 'bg-plot-g',
-          )}
-        />
+        <Swatch series={name} />
         {name}(t) =
       </Label>
       <Input
@@ -36,7 +30,6 @@ export function FunctionInput({ id, name, value, onChange, error, tex }: Props) 
         enterKeyHint="done"
         aria-invalid={error ? true : undefined}
         aria-describedby={`${id}-msg`}
-        className="font-mono"
       />
       <div id={`${id}-msg`} className="min-h-7 text-sm" aria-live="polite">
         {error ? (

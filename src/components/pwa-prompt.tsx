@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
+import { m } from '@/i18n'
+
 /** Meldet Offline-Bereitschaft bzw. eine neue Version (Service Worker) als Toast. */
 export function PwaPrompt() {
   const {
@@ -12,15 +14,15 @@ export function PwaPrompt() {
 
   useEffect(() => {
     if (!offlineReady) return
-    toast.success('Die App ist jetzt auch offline nutzbar.')
+    toast.success(m.offlineReady)
     setOfflineReady(false)
   }, [offlineReady, setOfflineReady])
 
   useEffect(() => {
     if (!needRefresh) return
-    toast('Eine neue Version ist verfügbar.', {
+    toast(m.updateReady, {
       duration: Infinity,
-      action: { label: 'Neu laden', onClick: () => updateServiceWorker(true) },
+      action: { label: m.reload, onClick: () => updateServiceWorker(true) },
       onDismiss: () => setNeedRefresh(false),
     })
   }, [needRefresh, setNeedRefresh, updateServiceWorker])

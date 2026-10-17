@@ -1,18 +1,18 @@
 import { ArrowLeftRight } from 'lucide-react'
 
 import { FunctionInput } from '@/components/function-input'
+import { Section } from '@/components/section'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
+import { localized, m } from '@/i18n'
 import { parseNumber, PRESETS, type Preset, type Settings } from '@/lib/presets'
 
 type Props = {
   settings: Settings
   onChange: (patch: Partial<Settings>) => void
   onSwap: () => void
-  onPreset: (p: Preset) => void
   fError: string | null
   gError: string | null
   fTex: string | null
@@ -55,26 +55,17 @@ function NumberField({
   )
 }
 
-export function Controls({
-  settings,
-  onChange,
-  onSwap,
-  onPreset,
-  fError,
-  gError,
-  fTex,
-  gTex,
-  rangeError,
-}: Props) {
+/** f, g, T und der Bereich. */
+export function Controls({ settings, onChange, onSwap, fError, gError, fTex, gTex, rangeError }: Props) {
   const Tbad = !(parseNumber(settings.T) > 0)
   return (
-    <Card>
+    <Section>
       <CardHeader>
-        <CardTitle>Funktionen</CardTitle>
-        <CardDescription>Variable t, Parameter T – siehe Funktionsreferenz unten.</CardDescription>
+        <CardTitle>{m.functionsTitle}</CardTitle>
+        <CardDescription>{m.functionsDescription}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
-        <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-start">
+        <div className="flex flex-col gap-2">
           <FunctionInput
             id="f-in"
             name="f"
@@ -83,15 +74,9 @@ export function Controls({
             error={fError}
             tex={fTex}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSwap}
-            className="justify-self-start md:mt-5.5"
-            aria-label="f und g tauschen"
-          >
-            <ArrowLeftRight />
-            <span className="md:sr-only">f ⇄ g tauschen</span>
+          <Button variant="outline" size="sm" onClick={onSwap} className="self-start">
+            <ArrowLeftRight data-icon="inline-start" />
+            {m.swap}
           </Button>
           <FunctionInput
             id="g-in"
@@ -104,17 +89,11 @@ export function Controls({
         </div>
 
         <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap gap-3">
-            <NumberField
-              id="t-per"
-              label="T"
-              value={settings.T}
-              onChange={(T) => onChange({ T })}
-              invalid={Tbad}
-            />
+          <div className="flex gap-4">
+            <NumberField id="t-per" label="T" value={settings.T} onChange={(T) => onChange({ T })} invalid={Tbad} />
             <NumberField
               id="x-min"
-              label="Von (× T)"
+              label={m.from}
               value={settings.a}
               onChange={(a) => onChange({ a })}
               invalid={!!rangeError}
@@ -122,7 +101,7 @@ export function Controls({
             />
             <NumberField
               id="x-max"
-              label="Bis (× T)"
+              label={m.to}
               value={settings.b}
               onChange={(b) => onChange({ b })}
               invalid={!!rangeError}
@@ -131,29 +110,29 @@ export function Controls({
           </div>
           {(rangeError || Tbad) && (
             <p className="text-sm text-destructive" aria-live="polite">
-              {Tbad ? 'T muss größer als 0 sein.' : rangeError}
+              {Tbad ? m.periodPositive : rangeError}
             </p>
           )}
         </div>
-
-        <Separator />
-
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-medium">Beispiele</h3>
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((p) => (
-              <Button
-                key={p.name}
-                variant="outline"
-                size="sm"
-                onClick={() => onPreset(p)}
-              >
-                {p.name}
-              </Button>
-            ))}
-          </div>
-        </div>
       </CardContent>
-    </Card>
+    </Section>
+  )
+}
+
+/** Fertige Paare von f und g; eines startet die Animation von vorn. */
+export function Examples({ onPreset }: { onPreset: (p: Preset) => void }) {
+  return (
+    <Section>
+      <CardHeader>
+        <CardTitle>{m.examples}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-2">
+        {PRESETS.map((p) => (
+          <Button key={p.name.de} variant="outline" size="sm" onClick={() => onPreset(p)}>
+            {localized(p.name)}
+          </Button>
+        ))}
+      </CardContent>
+    </Section>
   )
 }

@@ -2,22 +2,29 @@ import { ImageDown, Link2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-import { Controls } from '@/components/controls'
+import { AppToaster } from '@/components/app-toaster'
+import { Brand } from '@/components/brand'
+import { Controls, Examples } from '@/components/controls'
 import { ConvolutionPlot, type ConvolutionPlotHandle } from '@/components/convolution-plot'
-import { Explanation } from '@/components/explanation'
+import { Explanation, Properties } from '@/components/explanation'
 import { FunctionReference } from '@/components/function-reference'
+import { InstallButton } from '@/components/install'
+import { LanguageSwitcher } from '@/components/language-switcher'
 import { PwaPrompt } from '@/components/pwa-prompt'
 import { Readout } from '@/components/readout'
-import { SiteHeader } from '@/components/site-header'
+import { Section } from '@/components/section'
+import { SettingsPage } from '@/components/settings-page'
+import { Swatch } from '@/components/swatch'
+import { TabBar, type Tab } from '@/components/tab-bar'
 import { Tex } from '@/components/tex'
 import { Transport } from '@/components/transport'
 import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Kbd, KbdGroup } from '@/components/ui/kbd'
-import { Toaster } from '@/components/ui/sonner'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useInstallPrompt, type InstallPrompt } from '@/hooks/use-install-prompt'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useTheme } from '@/hooks/use-theme'
+import { formulaError, m } from '@/i18n'
 import { computeConvolution, type ConvolutionResult } from '@/lib/convolution'
 import { bind, compileFormula, FormulaError, type CompiledFormula } from '@/lib/formula'
 import { Playhead } from '@/lib/playhead'
@@ -29,6 +36,7 @@ import {
   type Preset,
   type Settings,
 } from '@/lib/presets'
+import { isDesktop } from '@/lib/media'
 import { cn } from '@/lib/utils'
 
 /** Dauer eines Durchlaufs über den ganzen Bereich bei 1× */
@@ -40,7 +48,7 @@ function tryCompile(src: string): Compiled {
   try {
     return { ok: true, c: compileFormula(src) }
   } catch (e) {
-    return { ok: false, error: e instanceof FormulaError ? e.message : 'Formel nicht auswertbar.' }
+    return { ok: false, error: e instanceof FormulaError ? formulaError(e.problem) : m.formulaFailed }
   }
 }
 
@@ -52,9 +60,9 @@ function parseRange(s: Settings) {
   const b = parseNumber(s.b)
   const TpOk = Number.isFinite(Tp) && Tp > 0
   let rangeError: string | null = null
-  if (!Number.isFinite(a) || !Number.isFinite(b)) rangeError = 'Bitte Zahlen für den Bereich eingeben.'
-  else if (b <= a) rangeError = '„Bis“ muss größer als „Von“ sein.'
-  else if (b - a > 200) rangeError = 'Der Bereich darf höchstens 200 T breit sein.'
+  if (!Number.isFinite(a) || !Number.isFinite(b)) rangeError = m.rangeNotNumbers
+  else if (b <= a) rangeError = m.rangeOrder
+  else if (b - a > 200) rangeError = m.rangeTooWide
   return { Tp, a, b, TpOk, rangeError }
 }
 
@@ -94,7 +102,7 @@ function isTypingTarget(el: EventTarget | null) {
 }
 
 export default function App() {
-  const { theme, resolved, setTheme } = useTheme()
+  const installPrompt = useInstallPrompt()
   const reduce = useReducedMotion()
   const plotRef = useRef<ConvolutionPlotHandle>(null)
 
@@ -249,21 +257,30 @@ export default function App() {
     applyNow({ ...settings, f: settings.g, g: settings.f })
   }, [settings, applyNow])
 
+  // Telefone zeigen eine Seite auf einmal (`TabBar`); los geht es mit der Animation
+  const [tab, setTab] = useState<Tab>('animation')
+  const switchTab = useCallback((next: Tab) => {
+    setTab(next)
+    window.scrollTo({ top: 0 })
+  }, [])
+
   const preset = useCallback(
     (p: Preset) => {
       restart.current = true
       applyNow({ ...settings, f: p.f, g: p.g, a: String(p.a), b: String(p.b) })
+      // Ein Beispiel startet die Animation von vorn: auf dem Telefon dorthin wechseln
+      if (!isDesktop()) switchTab('animation')
     },
-    [settings, applyNow],
+    [settings, applyNow, switchTab],
   )
 
   const share = useCallback(async () => {
     const url = window.location.origin + window.location.pathname + settingsToHash(settings)
     try {
       await navigator.clipboard.writeText(url)
-      toast.success('Link kopiert', { description: 'Der Link öffnet genau diese Ansicht.' })
+      toast.success(m.linkCopied, { description: m.linkCopiedText })
     } catch {
-      window.prompt('Link zum Kopieren:', url)
+      window.prompt(m.linkPrompt, url)
     }
   }, [settings])
 
@@ -274,7 +291,7 @@ export default function App() {
     const touch = window.matchMedia('(pointer: coarse)').matches
     if (touch && navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: 'Faltung' })
+        await navigator.share({ files: [file], title: m.appTitle })
         return
       } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') return
@@ -288,159 +305,187 @@ export default function App() {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000)
   }, [])
 
+  const phonePage = tab === 'animation' ? 'h-dvh overflow-hidden' : 'min-h-dvh'
+
   return (
     <TooltipProvider>
-      <SiteHeader theme={theme} setTheme={setTheme} />
-      <main className="px-safe mx-auto flex max-w-5xl flex-col gap-12 pt-5 pb-16 sm:pt-6">
-        <section id="animator" className="flex scroll-mt-20 flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-semibold tracking-tight text-balance sm:text-3xl">
-              Faltung zweier Funktionen
-            </h1>
-            <Tex
-              display
-              className="tex-left -mx-1 px-1 text-[0.85rem] sm:text-base"
-              math="(f*g)(t) = \int_{-\infty}^{\infty} f(\tau)\,g(t-\tau)\,\mathrm d\tau"
-            />
-            <p className="hidden max-w-[70ch] text-muted-foreground sm:block">
-              g wird gespiegelt über f geschoben; die gelbe Fläche unter dem Produkt ergibt Punkt für
-              Punkt das Faltungsergebnis. Zum Spulen im Plot waagerecht ziehen.
-            </p>
+      {/* Desktop: genau eine Ansicht hoch, die Seite scrollt nie, die Spalten in sich. Telefone
+          (und zu niedrige Fenster, siehe `desktop` in index.css): eine Seite je Tab; die Animation
+          ist ebenfalls eine Ansicht hoch, die anderen scrollen normal. Platz für die Tab-Leiste
+          und im Querformat für die Notch. */}
+      <div
+        className={cn(
+          'flex flex-col pr-[env(safe-area-inset-right)] pb-[calc(3.5rem+env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] desktop:h-dvh desktop:min-h-0 desktop:overflow-hidden desktop:pb-0',
+          phonePage,
+        )}
+      >
+        {/* Kein sichtbarer Header (ohmtools-Design); der Name steht im Footer */}
+        <h1 className="sr-only">{m.appTitle}</h1>
+
+        <main className="grid min-h-0 w-full flex-1 grid-cols-1 desktop:grid-cols-[24rem_minmax(0,1fr)]">
+          {/* Links die Eingaben und zum Nachschlagen; auf dem Desktop scrollt die Spalte in sich,
+              auf dem Telefon sind es zwei Tabs. Linien statt Kästen trennen die Abschnitte. */}
+          <div
+            className={cn(
+              'min-h-0 flex-col desktop:flex desktop:overflow-y-auto desktop:border-r',
+              tab === 'functions' || tab === 'explanation' ? 'flex' : 'hidden',
+            )}
+          >
+            <div className={cn('flex-col divide-y desktop:flex', tab === 'functions' ? 'flex' : 'hidden')}>
+              <Controls
+                settings={settings}
+                onChange={change}
+                onSwap={swap}
+                fError={fState.ok ? null : fState.error}
+                gError={gState.ok ? null : gState.error}
+                fTex={fState.ok ? fState.c.tex : null}
+                gTex={gState.ok ? gState.c.tex : null}
+                rangeError={rangeState.rangeError}
+              />
+              <Examples onPreset={preset} />
+              <FunctionReference />
+            </div>
+            <div
+              className={cn(
+                'flex-col divide-y desktop:flex desktop:border-t',
+                tab === 'explanation' ? 'flex' : 'hidden',
+              )}
+            >
+              <Explanation />
+              <Properties />
+              <Usage />
+            </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Animation</CardTitle>
-              <CardDescription>
-                <Legend convInT={result.convInT} />
-              </CardDescription>
-              <CardAction className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={share} aria-label="Link kopieren">
+          {/* Rechts die Animation; der Footer gehört auf dem Desktop zu dieser Spalte */}
+          <div
+            className={cn(
+              'min-h-0 flex-col overflow-y-auto desktop:flex desktop:overflow-hidden',
+              tab === 'animation' ? 'flex' : 'hidden',
+            )}
+          >
+            {/* Füllt die Höhe; auf zu niedrigen Telefonen (quer) nie kleiner als der Inhalt mit
+                dem Mindestmaß des Plots, dann scrollt die Spalte */}
+            <Section className="flex-[1_0_auto] gap-4 desktop:min-h-0 desktop:flex-1">
+              <CardHeader>
+                <CardTitle>{m.animationTitle}</CardTitle>
+                <CardDescription className="flex flex-col gap-1">
+                  <Tex
+                    math="(f*g)(t) = \int_{-\infty}^{\infty} f(\tau)\,g(t-\tau)\,\mathrm d\tau"
+                    className="whitespace-nowrap"
+                  />
+                  <span className="hidden max-w-[70ch] desktop:block">{m.animationHint}</span>
+                </CardDescription>
+                <CardAction className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={<Button variant="ghost" size="icon" onClick={share} aria-label={m.copyLink} />}
+                    >
                       <Link2 />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Link zu dieser Ansicht kopieren</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={savePng} aria-label="Als Bild speichern">
+                    </TooltipTrigger>
+                    <TooltipContent>{m.copyLinkTip}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={<Button variant="ghost" size="icon" onClick={savePng} aria-label={m.savePng} />}
+                    >
                       <ImageDown />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Als PNG speichern</TooltipContent>
-                </Tooltip>
-              </CardAction>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <ConvolutionPlot ref={plotRef} result={result} playhead={playhead} theme={resolved} />
-              <Readout result={result} playhead={playhead} />
-              <Transport result={result} playhead={playhead} />
-              <p className="text-sm text-muted-foreground sm:hidden">
-                g wird gespiegelt über f geschoben; die gelbe Fläche ergibt das Faltungsergebnis. Zum
-                Spulen im Plot waagerecht ziehen.
-              </p>
-            </CardContent>
-          </Card>
+                    </TooltipTrigger>
+                    <TooltipContent>{m.savePngTip}</TooltipContent>
+                  </Tooltip>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+                <Legend convInT={result.convInT} />
+                <ConvolutionPlot ref={plotRef} result={result} playhead={playhead} className="min-h-48 flex-1" />
+                <Readout result={result} playhead={playhead} />
+              </CardContent>
+            </Section>
+            {/* Telefon: die Bedienleiste über der Tab-Leiste, wo der Daumen ist */}
+            <Transport result={result} playhead={playhead} className="border-t px-6 py-3" />
+            <Footer prompt={installPrompt} />
+          </div>
 
-          <Controls
-            settings={settings}
-            onChange={change}
-            onSwap={swap}
-            onPreset={preset}
-            fError={fState.ok ? null : fState.error}
-            gError={gState.ok ? null : gState.error}
-            fTex={fState.ok ? fState.c.tex : null}
-            gTex={gState.ok ? gState.c.tex : null}
-            rangeError={rangeState.rangeError}
-          />
-        </section>
+          {/* Nur Telefone: der Inhalt des Footers als Seite */}
+          <div className={cn('flex-col desktop:hidden', tab === 'settings' ? 'flex' : 'hidden')}>
+            <SettingsPage prompt={installPrompt} />
+          </div>
+        </main>
 
-        <Explanation />
-        <FunctionReference />
-        <Shortcuts />
-      </main>
-      <footer className="border-t">
-        <div className="px-safe mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 py-6 text-sm text-muted-foreground">
-          <span>
-            Faltungs-Animator v{__APP_VERSION__} – rechnet vollständig im Browser, auch offline.
-          </span>
-          <span>mathjs · KaTeX · React · shadcn/ui</span>
-        </div>
-      </footer>
+        <TabBar value={tab} onChange={switchTab} />
+      </div>
       <PwaPrompt />
-      <Toaster theme={resolved} position="bottom-right" />
+      <AppToaster />
     </TooltipProvider>
   )
 }
 
-function Swatch({ className, box }: { className: string; box?: boolean }) {
+/** Logo, Name und Version · Hinweis · Installieren · Sprache. Nur auf dem Desktop. */
+function Footer({ prompt }: { prompt: InstallPrompt }) {
   return (
-    <i
-      aria-hidden
-      className={cn('inline-block w-4 rounded-sm', box ? 'h-3' : 'h-0.5', className)}
-    />
+    <footer className="hidden border-t desktop:block">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-3 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Brand className="text-foreground" />
+          {m.footerNote}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <InstallButton prompt={prompt} />
+          <LanguageSwitcher />
+        </div>
+      </div>
+    </footer>
   )
 }
 
 function Legend({ convInT }: { convInT: boolean }) {
+  const items: [React.ComponentProps<typeof Swatch>['series'], string][] = [
+    ['area', m.legendArea],
+    ['f', 'f(τ)'],
+    ['g', 'g(t−τ)'],
+    ['conv', convInT ? m.legendConvInT : '(f∗g)(t)'],
+  ]
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1">
-      <span className="inline-flex items-center gap-1.5">
-        <Swatch box className="bg-plot-area" />
-        Fläche unter f(τ)·g(t−τ)
-      </span>
-      <span className="inline-flex items-center gap-1.5">
-        <Swatch className="bg-plot-f" />
-        f(τ)
-      </span>
-      <span className="inline-flex items-center gap-1.5">
-        <Swatch className="bg-plot-g" />
-        g(t−τ)
-      </span>
-      <span className="inline-flex items-center gap-1.5">
-        <Swatch className="bg-plot-conv" />
-        {convInT ? '(f∗g)(t), rechte Achse in T' : '(f∗g)(t)'}
-      </span>
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+      {items.map(([series, label]) => (
+        <span key={series} className="inline-flex items-center gap-1.5">
+          <Swatch series={series} />
+          {label}
+        </span>
+      ))}
     </div>
   )
 }
 
-const KEYS: [string[], string][] = [
-  [['Leertaste'], 'Abspielen / Pause'],
-  [['←', '→'], 'Schritt zurück / vor (mit ⇧: größer)'],
-  [['Pos1', 'Ende'], 'Zum Anfang / Ende'],
-  [['Ziehen', 'Tippen'], 'Zeitpunkt t im Plot setzen'],
-]
-
-function Shortcuts() {
+function Usage() {
+  const keys: [string[], string][] = [
+    [[m.keySpace], m.usagePlay],
+    [['←', '→'], m.usageStep],
+    [[m.keyHome, m.keyEnd], m.usageEnds],
+    [[m.keyDrag, m.keyTap], m.usageScrub],
+  ]
   return (
-    <Card>
+    <Section>
       <CardHeader>
-        <CardTitle>Bedienung</CardTitle>
-        <CardDescription>
-          Die Einstellungen stehen in der Adresszeile; ein kopierter Link öffnet genau diese Ansicht.
-          Über „Installieren“ oben (auf iPhone und iPad: Teilen → „Zum Home-Bildschirm“) lässt sich die
-          Seite als App installieren und funktioniert danach auch ohne Internetverbindung.
-        </CardDescription>
+        <CardTitle>{m.usageTitle}</CardTitle>
+        <CardDescription>{m.usageDescription}</CardDescription>
       </CardHeader>
       <CardContent>
-        <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-          {KEYS.map(([keys, v]) => (
+        <dl className="flex flex-col gap-3">
+          {keys.map(([k, v]) => (
             <div key={v} className="flex items-center gap-3">
               <dt>
                 <KbdGroup>
-                  {keys.map((k) => (
-                    <Kbd key={k}>{k}</Kbd>
+                  {k.map((one) => (
+                    <Kbd key={one}>{one}</Kbd>
                   ))}
                 </KbdGroup>
               </dt>
-              <dd className="text-sm text-muted-foreground">{v}</dd>
+              <dd className="text-muted-foreground">{v}</dd>
             </div>
           ))}
         </dl>
       </CardContent>
-    </Card>
+    </Section>
   )
 }

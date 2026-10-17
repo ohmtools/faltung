@@ -1,25 +1,26 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react'
 
+import { m } from '@/i18n'
 import type { ConvolutionResult } from '@/lib/convolution'
 import type { Playhead } from '@/lib/playhead'
 import { drawPlot, readPlotColors, tFromX, toCanvasColor, type PlotColors } from '@/lib/plot'
+import { cn } from '@/lib/utils'
 
 type Props = {
   result: ConvolutionResult
   playhead: Playhead
-  /** ändert sich beim Themenwechsel → Farben neu lesen */
-  theme: string
+  className?: string
 }
 
 export type ConvolutionPlotHandle = { toBlob: () => Promise<Blob | null> }
 
 export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function ConvolutionPlot(
-  { result, playhead, theme },
+  { result, playhead, className },
   ref,
 ) {
   const boxRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const size = useRef({ W: 600, H: 320, dpr: 1 })
+  const size = useRef({ W: 0, H: 0, dpr: 0 })
   const colors = useRef<PlotColors | null>(null)
   const resultRef = useRef(result)
   const drawRef = useRef<() => void>(() => {})
@@ -35,57 +36,50 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
     }
   }, [playhead])
 
-  // Größe
+  // Größe: der Plot füllt, was das Layout ihm lässt (Desktop und Animations-Tab sind genau
+  // eine Ansicht hoch)
   useEffect(() => {
     const box = boxRef.current
     const cv = canvasRef.current
     if (!box || !cv) return
-    let lastVH = 0
-    const resize = (ev?: Event) => {
+    const resize = () => {
       const W = box.clientWidth
-      const vh = window.innerHeight
-      // iOS ändert innerHeight beim Ein-/Ausblenden der Leisten während des Scrollens;
-      // darauf nicht reagieren, nur auf echte Größenwechsel (Drehen, Fenstergröße)
-      if (ev?.type === 'resize' && W === size.current.W && Math.abs(vh - lastVH) < 150) return
-      lastVH = vh
-      // schmal: höher als breit-halbe, damit der Plot auf dem Telefon lesbar bleibt;
-      // niedrig (Telefon quer): Plot + Bedienleiste sollen gemeinsam auf den Bildschirm passen
-      const ideal = Math.round(W * (W < 600 ? 0.62 : 0.5))
-      const H = Math.max(190, Math.min(480, ideal, vh - 150, Math.round(vh * 0.46)))
+      const H = box.clientHeight
       const dpr = window.devicePixelRatio || 1
+      if (W === size.current.W && H === size.current.H && dpr === size.current.dpr) return
       size.current = { W, H, dpr }
       cv.width = Math.round(W * dpr)
       cv.height = Math.round(H * dpr)
-      cv.style.height = H + 'px'
       drawRef.current()
     }
-    const ro = new ResizeObserver(() => resize())
+    const ro = new ResizeObserver(resize)
     ro.observe(box)
-    window.addEventListener('resize', resize)
     resize()
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', resize)
-    }
+    return () => ro.disconnect()
   }, [])
 
-  // Neu zeichnen bei Änderungen von t, Ergebnis oder Thema
+  // Neu zeichnen bei Änderungen von t, Ergebnis, Farbschema und sobald Inter geladen ist
   useEffect(() => playhead.subscribe(() => drawRef.current()), [playhead])
   useLayoutEffect(() => {
     resultRef.current = result
     drawRef.current()
   }, [result])
   useEffect(() => {
-    // Die dark-Klasse setzt der Eltern-Effekt erst nach diesem; deshalb auf die Klasse selbst hören
+    // ThemeProvider setzt die dark-Klasse, wenn das Gerät das Farbschema wechselt
+    let alive = true
     const reset = () => {
+      if (!alive) return
       colors.current = null
       drawRef.current()
     }
-    reset()
     const mo = new MutationObserver(reset)
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => mo.disconnect()
-  }, [theme])
+    void document.fonts.ready.then(reset)
+    return () => {
+      alive = false
+      mo.disconnect()
+    }
+  }, [])
 
   // Ziehen im Plot setzt t. Maus/Stift: sofort. Touch: senkrechtes Wischen scrollt die Seite
   // (touch-action: pan-y), waagerechtes Wischen spult, kurzes Tippen setzt t.
@@ -162,7 +156,7 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
         const ctx = out.getContext('2d')
         if (!ctx) return resolve(null)
         ctx.fillStyle = toCanvasColor(
-          getComputedStyle(document.documentElement).getPropertyValue('--card').trim(),
+          getComputedStyle(document.documentElement).getPropertyValue('--background').trim(),
         )
         ctx.fillRect(0, 0, out.width, out.height)
         ctx.drawImage(cv, 0, 0)
@@ -171,12 +165,12 @@ export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function
   }))
 
   return (
-    <div ref={boxRef} className="relative w-full">
+    <div ref={boxRef} className={cn('relative w-full', className)}>
       <canvas
         ref={canvasRef}
-        className="block w-full cursor-ew-resize touch-pan-y select-none [-webkit-touch-callout:none]"
+        className="absolute inset-0 block size-full cursor-ew-resize touch-pan-y select-none [-webkit-touch-callout:none]"
         role="img"
-        aria-label="Animation der Faltung: f(τ), gespiegeltes und verschobenes g(t−τ), Produktfläche und Faltungsergebnis"
+        aria-label={m.plotLabel}
       />
     </div>
   )

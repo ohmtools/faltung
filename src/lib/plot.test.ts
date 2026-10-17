@@ -20,6 +20,11 @@ describe('toCanvasColor', () => {
     expect(rgba(toCanvasColor('oklch(0.828 0.189 84.429 / 0.5)'))[3]).toBeCloseTo(0.5)
   })
 
+  it('ersetzt die Deckkraft auf Wunsch', () => {
+    expect(rgba(toCanvasColor('oklch(0.808 0.114 19.571)', 0.45))[3]).toBeCloseTo(0.45)
+    expect(rgba(toCanvasColor('oklch(1 0 0 / 10%)', 1))[3]).toBe(1)
+  })
+
   it('lässt andere Farben unverändert', () => {
     expect(toCanvasColor('#ff0000')).toBe('#ff0000')
     expect(toCanvasColor('rgb(1, 2, 3)')).toBe('rgb(1, 2, 3)')

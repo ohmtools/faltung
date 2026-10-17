@@ -8,9 +8,13 @@ Web-App, die die Faltung zweier Funktionen animiert:
 $$(f * g)(t) = \int_{-\infty}^{\infty} f(\tau)\, g(t-\tau)\, \mathrm d\tau$$
 
 Freie Formeleingabe (`rect(t/T)`, `u(t)*exp(-2t/T)`, `delta(t-T)`, …), Dirac-Impulse werden
-exakt verrechnet. Läuft komplett im Browser, als PWA installierbar und offline nutzbar.
+exakt verrechnet. Läuft komplett im Browser, als PWA installierbar und offline nutzbar, auf
+Deutsch und Englisch (nach der Sprache des Browsers).
 
-Vite + React 19 + TypeScript, shadcn/ui, Tailwind v4, mathjs (Parser), KaTeX.
+Vite + React 19 + TypeScript, shadcn/ui (`base-sera`, Base UI), Tailwind v4, mathjs (Parser),
+KaTeX. Das Erscheinungsbild folgt dem [ohmtools-Design](https://github.com/ohmtools/design)
+(`src/index.css` und `components.json` kommen von dort, die CI prüft sie). Texte der Oberfläche:
+`src/messages.ts`.
 Kern: `src/lib/formula.ts` (Formel → JS-Funktion), `src/lib/convolution.ts`, `src/lib/plot.ts`.
 
 ## Entwicklung
@@ -21,7 +25,7 @@ npm run dev       # Entwicklungsserver
 npm test          # Vitest
 npm run lint      # oxlint
 npm run build     # nach dist/ (Unterverzeichnis: BASE_PATH=/faltung/ npm run build)
-npm run icons     # PWA-Icons aus public/favicon.svg
+npm run icons     # App-Symbole (PNG) aus public/logo.svg
 npm run release   # aktuelle Version taggen und den Tag pushen
 ```
 

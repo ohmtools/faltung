@@ -17,14 +17,17 @@ export type PlotColors = {
   font: string
 }
 
-/** oklch(L C H [/ A]) → rgba(), da nicht jede Canvas-Implementierung oklch versteht. */
-export function toCanvasColor(css: string): string {
+/**
+ * oklch(L C H [/ A]) → rgba(), da nicht jede Canvas-Implementierung oklch versteht. `alpha`
+ * ersetzt die Deckkraft der Farbe.
+ */
+export function toCanvasColor(css: string, alpha?: number): string {
   const m = /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)(?:deg)?\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/i.exec(css)
   if (!m) return css
   const L = parseFloat(m[1]) / (m[2] ? 100 : 1)
   const C = parseFloat(m[3])
   const h = (parseFloat(m[4]) * Math.PI) / 180
-  const alpha = m[5] === undefined ? 1 : parseFloat(m[5]) / (m[6] ? 100 : 1)
+  const own = m[5] === undefined ? 1 : parseFloat(m[5]) / (m[6] ? 100 : 1)
   const a = C * Math.cos(h)
   const b = C * Math.sin(h)
   const l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
@@ -39,22 +42,32 @@ export function toCanvasColor(css: string): string {
     const v = x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055
     return Math.round(Math.min(1, Math.max(0, v)) * 255)
   })
-  return `rgba(${r}, ${g}, ${bl}, ${alpha})`
+  return `rgba(${r}, ${g}, ${bl}, ${alpha ?? own})`
 }
 
+/** Deckkraft der Produktfläche über f und g */
+export const AREA_ALPHA = 0.45
+/** Strichmuster von g(t−τ): neben der Farbe das zweite Merkmal, das g von f unterscheidet */
+export const G_DASH = [6, 4]
+
+/**
+ * Die Farben des Plots aus den Tokens des ohmtools-Designs: f und g in den Diagrammfarben
+ * (Rot ist die einzige Akzentfarbe), das Ergebnis in der Textfarbe, Raster und Achsen grau.
+ */
 export function readPlotColors(el: Element = document.documentElement): PlotColors {
   const cs = getComputedStyle(el)
-  const v = (name: string) => toCanvasColor(cs.getPropertyValue(name).trim())
+  const raw = (name: string) => cs.getPropertyValue(name).trim()
+  const v = (name: string) => toCanvasColor(raw(name))
   return {
-    grid: v('--plot-grid'),
-    axis: v('--plot-axis'),
+    grid: v('--border'),
+    axis: v('--muted-foreground'),
     muted: v('--muted-foreground'),
-    f: v('--plot-f'),
-    g: v('--plot-g'),
-    area: v('--plot-area'),
-    areaSolid: v('--plot-area-solid'),
-    conv: v('--plot-conv'),
-    font: getComputedStyle(document.body).getPropertyValue('--font-mono').trim() || 'monospace',
+    f: v('--chart-2'),
+    g: v('--chart-4'),
+    area: toCanvasColor(raw('--chart-1'), AREA_ALPHA),
+    areaSolid: v('--chart-1'),
+    conv: v('--foreground'),
+    font: getComputedStyle(document.body).fontFamily || 'sans-serif',
   }
 }
 
@@ -169,7 +182,7 @@ export function drawPlot(
   const tauAt = (j: number) => xmin + ((xmax - xmin) * j) / steps
 
   // Dirac-Impuls als Pfeil, Länge = Gewicht; Gewicht ≠ ±1 steht in Klammern daneben
-  const arrow = (x: number, w: number, color: string, lw: number) => {
+  const arrow = (x: number, w: number, color: string, lw: number, dash: number[] = []) => {
     if (Math.abs(w) < 1e-9 || x < xmin - 1e-9 || x > xmax + 1e-9) return
     const px = X(x)
     const p0 = Y(0)
@@ -179,10 +192,12 @@ export function drawPlot(
     ctx.strokeStyle = color
     ctx.fillStyle = color
     ctx.lineWidth = lw
+    ctx.setLineDash(dash)
     ctx.beginPath()
     ctx.moveTo(px, p0)
     ctx.lineTo(px, p1 + dir * hs * 0.8)
     ctx.stroke()
+    ctx.setLineDash([])
     ctx.beginPath()
     ctx.moveTo(px, p1)
     ctx.lineTo(px - hs * 0.6, p1 + dir * hs)
@@ -208,10 +223,11 @@ export function drawPlot(
   ctx.closePath()
   ctx.fill()
 
-  const curve = (fn: (x: number) => number, color: string, w: number) => {
+  const curve = (fn: (x: number) => number, color: string, w: number, dash: number[] = []) => {
     ctx.strokeStyle = color
     ctx.lineWidth = w
     ctx.lineJoin = 'round'
+    ctx.setLineDash(dash)
     ctx.beginPath()
     for (let j = 0; j <= steps; j++) {
       const tau = tauAt(j)
@@ -221,14 +237,15 @@ export function drawPlot(
       else ctx.moveTo(px, py)
     }
     ctx.stroke()
+    ctx.setLineDash([])
   }
   // Impulsanteile des Produkts f(τ)·g(t−τ)
   for (const d of r.gImp) arrow(t - d.p, d.w * f.reg(t - d.p), C.areaSolid, 6)
   for (const d of r.fImp) arrow(d.p, d.w * g.reg(t - d.p), C.areaSolid, 6)
   curve(f.reg, C.f, 2)
   for (const d of r.fImp) arrow(d.p, d.w, C.f, 2)
-  curve((tau) => g.reg(t - tau), C.g, 2)
-  for (const d of r.gImp) arrow(t - d.p, d.w, C.g, 2)
+  curve((tau) => g.reg(t - tau), C.g, 2, G_DASH)
+  for (const d of r.gImp) arrow(t - d.p, d.w, C.g, 2, G_DASH)
 
   // Faltungsergebnis bis t
   ctx.strokeStyle = C.conv

@@ -4,6 +4,17 @@ import { bind, compileFormula, FormulaError, SCOPE_REGULAR } from './formula'
 
 const ev = (src: string, x: number, T = 1) => compileFormula(src).evaluate(x, T, SCOPE_REGULAR)
 
+/** Was compileFormula an der Formel bemängelt, sonst null. */
+function problem(src: string) {
+  try {
+    compileFormula(src)
+  } catch (e) {
+    if (e instanceof FormulaError) return e.problem
+    throw e
+  }
+  return null
+}
+
 describe('compileFormula', () => {
   it('wertet Grundfunktionen aus', () => {
     expect(ev('rect(t/T)', 0)).toBe(1)
@@ -45,14 +56,16 @@ describe('compileFormula', () => {
 
   it('lehnt Unbekanntes ab', () => {
     expect(() => compileFormula('foo(t)')).toThrow(FormulaError)
-    expect(() => compileFormula('y')).toThrow(/Unbekannt/)
+    expect(problem('y')).toEqual({ kind: 'unknown-symbol', name: 'y' })
     expect(() => compileFormula('t +')).toThrow(FormulaError)
     expect(() => compileFormula('')).toThrow(FormulaError)
     expect(() => compileFormula('"abc"')).toThrow(FormulaError)
     expect(() => compileFormula('a = 3')).toThrow(FormulaError)
     expect(() => compileFormula('constructor')).toThrow(FormulaError)
-    expect(() => compileFormula('rect')).toThrow(/Argument/)
-    expect(() => compileFormula('rect(t, 2)')).toThrow(/Argument/)
+    expect(problem('rect')).toEqual({ kind: 'needs-argument', name: 'rect' })
+    expect(problem('rect(t, 2)')).toEqual({ kind: 'arity', name: 'rect', min: 1, max: 1 })
+    expect(problem('t +')).toMatchObject({ kind: 'syntax' })
+    expect(problem('')).toEqual({ kind: 'empty' })
   })
 
   it('erkennt Dirac-Impulse', () => {
