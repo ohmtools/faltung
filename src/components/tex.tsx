@@ -42,7 +42,13 @@ export function Tex({ math, display = false, className }: TexProps) {
     () => lib?.renderToString(math, { displayMode: display, throwOnError: false, strict: false }),
     [lib, math, display],
   )
-  const cls = cn(display && 'block overflow-x-auto overflow-y-hidden', className)
+  // Abgesetzte Formeln linksbündig und ohne den großen Rand aus KaTeX' Stylesheet. Das liegt
+  // außerhalb der Tailwind-Layer und gewinnt sonst, deshalb `!`.
+  const cls = cn(
+    display &&
+      'block overflow-x-auto overflow-y-hidden [&_.katex-display]:my-2! [&_.katex-display>.katex]:text-left!',
+    className,
+  )
   // Bis KaTeX da ist leer; schlägt das Laden fehl, die Formel als Quelltext
   if (html === undefined) {
     return <span className={cn(cls, failed && 'font-mono')}>{failed && math}</span>

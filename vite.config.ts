@@ -25,7 +25,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
+      includeAssets: ['favicon.svg'],
+      // Die Symbole des Manifests liest nur die Installation (online), nie die App selbst
+      includeManifestIcons: false,
       manifest: {
         name: 'Faltungs-Animator',
         short_name: 'Faltung',
@@ -35,21 +37,33 @@ export default defineConfig({
         scope: '.',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#ffffff',
+        // Startbildschirm: das helle --primary des ohmtools-Designs
+        background_color: '#c10007',
         theme_color: '#ffffff',
         categories: ['education', 'utilities'],
+        // Das SVG für Browser, die eines nehmen; PNGs für Android-Browser ohne SVG; ein randloses
+        // maskable, sonst setzt Android das Symbol auf eine weiße Platte. iOS liest nichts davon
+        // (`apple-touch-icon` in index.html). Alle aus `npm run icons`.
         icons: [
-          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'logo.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // KaTeX bringt ~20 Schriftschnitte mit, die meisten erscheinen nie: nicht alle
         // vorab laden (~250 KB), sondern jeden beim ersten Gebrauch cachen
-        globIgnores: ['**/KaTeX_*'],
+        // Inter bringt weitere Schriftsysteme mit; Deutsch und Englisch treffen ihren
+        // `unicode-range` nie, der Browser fragt sie also auch nie an. Die App-Symbole liest nur
+        // die Installation.
+        globIgnores: [
+          '**/KaTeX_*',
+          '**/inter-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2',
+          'apple-touch-icon.png',
+          'icon-*.png',
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes('/assets/KaTeX_'),
@@ -69,7 +83,7 @@ export default defineConfig({
             { name: 'mathjs', test: /node_modules[\\/](mathjs|typed-function|complex\.js|fraction\.js|decimal\.js|javascript-natural-sort|seedrandom|escape-latex|tiny-emitter)[\\/]/ },
             { name: 'katex', test: /node_modules[\\/]katex[\\/]/ },
             { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
-            { name: 'ui', test: /node_modules[\\/](radix-ui|@radix-ui|@floating-ui|lucide-react)[\\/]/ },
+            { name: 'ui', test: /node_modules[\\/](@base-ui|@floating-ui|lucide-react)[\\/]/ },
           ],
         },
       },

@@ -2,22 +2,31 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
+    <!-- `viewport-fit=cover`: sonst meldet iOS alle Safe-Area-Abstände als 0, und die Tab-Leiste
+         läge in der installierten App unter dem Home-Indikator. Die App rückt selbst um
+         `env(safe-area-inset-*)` ein. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+    <!-- Setzt shadcns .dark-Klasse vor dem ersten Zeichnen, damit im Dunkelmodus nichts weiß
+         aufblitzt; ThemeProvider hält sie danach aktuell. Eine eigene Datei statt Inline-Script,
+         damit die Content-Security-Policy ohne Hash auskommt. -->
+    <script src="/dark.js"></script>
     <title>Faltungs-Animator</title>
     <meta
       name="description"
       content="Interaktive Animation der Faltung zweier Funktionen: (f ∗ g)(t) = ∫ f(τ) · g(t − τ) dτ. Läuft komplett im Browser und offline."
     />
-    <meta name="theme-color" content="#ffffff" />
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <!-- iOS nimmt das Symbol für den Home-Bildschirm nur von hier, nie aus dem Manifest;
+         `scripts/app-icons.mjs` rendert es aus `public/logo.svg`. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-title" content="Faltung" />
-    <script src="/theme.js"></script>
   </head>
   <body>
     <div id="root"></div>

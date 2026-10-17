@@ -1,6 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#171717"/>
-  <path d="M10 46 L32 18 L54 46" fill="#fafafa" fill-opacity=".18"/>
-  <path d="M10 46 L32 18 L54 46" fill="none" stroke="#fafafa" stroke-width="3.5" stroke-linejoin="round"/>
-  <path d="M8 46 H56" stroke="#fafafa" stroke-opacity=".5" stroke-width="2.5" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="88 88 336 336" width="512" height="512">
+  <defs>
+    <radialGradient id="faceGrad" cx="42%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#262B35"/>
+      <stop offset="100%" stop-color="#12151A"/>
+    </radialGradient>
+    <linearGradient id="bezelGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F5F5F4"/>
+      <stop offset="45%" stop-color="#D6D3CE"/>
+      <stop offset="100%" stop-color="#8C8884"/>
+    </linearGradient>
+    <linearGradient id="scarletGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E23A46"/>
+      <stop offset="100%" stop-color="#9E0711"/>
+    </linearGradient>
+    <linearGradient id="maroonGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#9E0711"/>
+      <stop offset="100%" stop-color="#5C040A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Glyph: zwei Rechteckimpulse und ihre Faltung, ein Dreieck, auf einem Oszilloskop-Schirm -->
+  <g>
+    <!-- Schirm und Rahmen -->
+    <rect x="106" y="136" width="300" height="240" rx="32" ry="32" fill="url(#faceGrad)" stroke="url(#bezelGrad)" stroke-width="20"/>
+    <!-- Zeitachse -->
+    <rect x="136" y="316" width="240" height="8" rx="4" fill="url(#bezelGrad)"/>
+    <!-- f und g: zwei Rechtecke -->
+    <rect x="156" y="236" width="100" height="80" fill="url(#scarletGrad)"/>
+    <rect x="256" y="236" width="100" height="80" fill="url(#maroonGrad)"/>
+    <!-- f ∗ g: das Dreieck -->
+    <path d="M156 316 L256 176 L356 316" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
 </svg>

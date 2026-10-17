@@ -23,7 +23,9 @@ function isStandalone() {
  * - Chromium-Browser: echter Installationsdialog über beforeinstallprompt
  * - iOS/iPadOS: kein solches Ereignis; dort braucht es eine Anleitung (Teilen → Zum Home-Bildschirm)
  */
-export function useInstallPrompt() {
+export type InstallPrompt = { canInstall: boolean; install: () => void; iosHint: boolean }
+
+export function useInstallPrompt(): InstallPrompt {
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null)
   const [iosHint] = useState(() => detectIOS() && !isStandalone())
 

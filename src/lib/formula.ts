@@ -58,7 +58,27 @@ export const SCOPE_PULSE: Scope = {
   dirac: (x) => Math.max(0, 1 - Math.abs(x) / pulseHalfWidth) / pulseHalfWidth,
 }
 
-export class FormulaError extends Error {}
+/** Was an einer Formel nicht stimmt; den Text dazu schreibt die Oberfläche in ihrer Sprache. */
+export type FormulaProblem =
+  | { kind: 'empty' }
+  | { kind: 'syntax'; at?: number }
+  | { kind: 'invalid-call' }
+  | { kind: 'constant' }
+  | { kind: 'needs-argument'; name: string }
+  | { kind: 'unknown-symbol'; name: string }
+  | { kind: 'unknown-function'; name: string }
+  | { kind: 'arity'; name: string; min: number; max: number }
+  | { kind: 'operator'; op: string }
+  | { kind: 'comparison' }
+  | { kind: 'unsupported' }
+
+export class FormulaError extends Error {
+  readonly problem: FormulaProblem
+  constructor(problem: FormulaProblem) {
+    super(problem.kind)
+    this.problem = problem
+  }
+}
 
 /** Übersetzte Formel an der Stelle x; T und die Funktionsumgebung sind fest eingebunden. */
 type Ev = (x: number) => number
@@ -126,7 +146,7 @@ const UNARY: Record<string, (a: Ev) => Ev> = {
 function fnName(node: MathNode): string {
   const fn = (node as unknown as { fn: MathNode }).fn
   if (fn && fn.type === 'SymbolNode') return (fn as unknown as { name: string }).name
-  throw new FormulaError('Ungültiger Funktionsaufruf.')
+  throw new FormulaError({ kind: 'invalid-call' })
 }
 
 function call(f: (...args: number[]) => number, args: Ev[]): Ev {
@@ -152,15 +172,15 @@ function gen(node: MathNode, T: number, M: Scope): Out {
       const v = n.value
       if (typeof v === 'number' && Number.isFinite(v)) return konst(v)
       if (typeof v === 'boolean') return konst(v ? 1 : 0)
-      throw new FormulaError('Nur Zahlen sind als Konstanten erlaubt.')
+      throw new FormulaError({ kind: 'constant' })
     }
     case 'SymbolNode': {
       const name = n.name as string
       if (VARIABLES.has(name)) return { ev: (x) => x }
       if (name === 'T') return konst(T)
       if (Object.hasOwn(CONSTANTS, name)) return konst(CONSTANTS[name])
-      if (FUNCTIONS.has(name)) throw new FormulaError(`${name} braucht ein Argument, z. B. ${name}(t).`)
-      throw new FormulaError(`Unbekannt: ${name}`)
+      if (FUNCTIONS.has(name)) throw new FormulaError({ kind: 'needs-argument', name })
+      throw new FormulaError({ kind: 'unknown-symbol', name })
     }
     case 'ParenthesisNode':
       return gen(n.content as MathNode, T, M)
@@ -170,19 +190,15 @@ function gen(node: MathNode, T: number, M: Scope): Out {
       if (Object.hasOwn(ARITH, fn) && args.length === 2) return fold(arith(fn, args[0], args[1]), args)
       if (Object.hasOwn(BINARY, fn) && args.length === 2) return fold(BINARY[fn](args[0].ev, args[1].ev, M), args)
       if (Object.hasOwn(UNARY, fn) && args.length === 1) return fold(UNARY[fn](args[0].ev), args)
-      throw new FormulaError(`Operator „${n.op as string}“ wird nicht unterstützt.`)
+      throw new FormulaError({ kind: 'operator', op: n.op as string })
     }
     case 'FunctionNode': {
       const name = fnName(node)
-      if (!FUNCTIONS.has(name)) throw new FormulaError(`Unbekannte Funktion: ${name}`)
+      if (!FUNCTIONS.has(name)) throw new FormulaError({ kind: 'unknown-function', name })
       const args = (n.args as MathNode[]).map((a) => gen(a, T, M))
       const [lo, hi] = ARITY[name] ?? [1, 1]
       if (args.length < lo || args.length > hi) {
-        throw new FormulaError(
-          lo === hi
-            ? `${name} erwartet ${lo} Argument${lo === 1 ? '' : 'e'}.`
-            : `${name} erwartet mindestens ${lo} Argument.`,
-        )
+        throw new FormulaError({ kind: 'arity', name, min: lo, max: hi })
       }
       // delta liest die Pulsbreite erst beim Aufruf, darf also nicht vorab ausgerechnet werden
       const ev = call(M[name], args.map((a) => a.ev))
@@ -200,7 +216,7 @@ function gen(node: MathNode, T: number, M: Scope): Out {
       // 0 < t < T
       const params = (n.params as MathNode[]).map((p) => gen(p, T, M))
       const cmps = (n.conditionals as string[]).map((c) => {
-        if (!Object.hasOwn(COMPARE, c)) throw new FormulaError('Vergleich wird nicht unterstützt.')
+        if (!Object.hasOwn(COMPARE, c)) throw new FormulaError({ kind: 'comparison' })
         return COMPARE[c]
       })
       const evs = params.map((p) => p.ev)
@@ -216,7 +232,7 @@ function gen(node: MathNode, T: number, M: Scope): Out {
       return fold(ev, params)
     }
   }
-  throw new FormulaError('Dieser Ausdruck wird nicht unterstützt.')
+  throw new FormulaError({ kind: 'unsupported' })
 }
 
 /** Vereinheitlicht Unicode-Schreibweisen, damit mathjs sie versteht. */
@@ -272,16 +288,14 @@ export type CompiledFormula = {
 
 export function compileFormula(src: string): CompiledFormula {
   const s = normalize(String(src)).trim()
-  if (!s) throw new FormulaError('Bitte eine Funktion eingeben.')
+  if (!s) throw new FormulaError({ kind: 'empty' })
   let node: MathNode
   try {
     node = math.parse(s)
   } catch (e) {
     const msg = e instanceof Error ? e.message : ''
     const m = /\(char (\d+)\)/.exec(msg)
-    throw new FormulaError(
-      m ? `Formel fehlerhaft bei Zeichen ${m[1]}.` : 'Formel unvollständig oder fehlerhaft.',
-    )
+    throw new FormulaError(m ? { kind: 'syntax', at: Number(m[1]) } : { kind: 'syntax' })
   }
   const parsed = node
   const at = (T: number, M: Scope) => {
