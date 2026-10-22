@@ -47,12 +47,13 @@ export function toCanvasColor(css: string, alpha?: number): string {
 
 /** Deckkraft der Produktfläche über f und g */
 export const AREA_ALPHA = 0.45
-/** Strichmuster von g(t−τ): neben der Farbe das zweite Merkmal, das g von f unterscheidet */
-export const G_DASH = [6, 4]
+/** Farbe von g(t−τ): ein dunkleres Rot als f, in hellem und dunklem Schema gleich */
+export const G_COLOR = '#7E1817'
 
 /**
- * Die Farben des Plots aus den Tokens des ohmtools-Designs: f und g in den Diagrammfarben
- * (Rot ist die einzige Akzentfarbe), das Ergebnis in der Textfarbe, Raster und Achsen grau.
+ * Die Farben des Plots aus den Tokens des ohmtools-Designs: f in einer Diagrammfarbe (Rot ist die
+ * einzige Akzentfarbe), g im dunkleren Rot `G_COLOR`, das Ergebnis in der Textfarbe, Raster und
+ * Achsen grau.
  */
 export function readPlotColors(el: Element = document.documentElement): PlotColors {
   const cs = getComputedStyle(el)
@@ -63,7 +64,7 @@ export function readPlotColors(el: Element = document.documentElement): PlotColo
     axis: v('--muted-foreground'),
     muted: v('--muted-foreground'),
     f: v('--chart-2'),
-    g: v('--chart-4'),
+    g: G_COLOR,
     area: toCanvasColor(raw('--chart-1'), AREA_ALPHA),
     areaSolid: v('--chart-1'),
     conv: v('--foreground'),
@@ -182,7 +183,7 @@ export function drawPlot(
   const tauAt = (j: number) => xmin + ((xmax - xmin) * j) / steps
 
   // Dirac-Impuls als Pfeil, Länge = Gewicht; Gewicht ≠ ±1 steht in Klammern daneben
-  const arrow = (x: number, w: number, color: string, lw: number, dash: number[] = []) => {
+  const arrow = (x: number, w: number, color: string, lw: number) => {
     if (Math.abs(w) < 1e-9 || x < xmin - 1e-9 || x > xmax + 1e-9) return
     const px = X(x)
     const p0 = Y(0)
@@ -192,12 +193,10 @@ export function drawPlot(
     ctx.strokeStyle = color
     ctx.fillStyle = color
     ctx.lineWidth = lw
-    ctx.setLineDash(dash)
     ctx.beginPath()
     ctx.moveTo(px, p0)
     ctx.lineTo(px, p1 + dir * hs * 0.8)
     ctx.stroke()
-    ctx.setLineDash([])
     ctx.beginPath()
     ctx.moveTo(px, p1)
     ctx.lineTo(px - hs * 0.6, p1 + dir * hs)
@@ -223,11 +222,10 @@ export function drawPlot(
   ctx.closePath()
   ctx.fill()
 
-  const curve = (fn: (x: number) => number, color: string, w: number, dash: number[] = []) => {
+  const curve = (fn: (x: number) => number, color: string, w: number) => {
     ctx.strokeStyle = color
     ctx.lineWidth = w
     ctx.lineJoin = 'round'
-    ctx.setLineDash(dash)
     ctx.beginPath()
     for (let j = 0; j <= steps; j++) {
       const tau = tauAt(j)
@@ -237,15 +235,14 @@ export function drawPlot(
       else ctx.moveTo(px, py)
     }
     ctx.stroke()
-    ctx.setLineDash([])
   }
   // Impulsanteile des Produkts f(τ)·g(t−τ)
   for (const d of r.gImp) arrow(t - d.p, d.w * f.reg(t - d.p), C.areaSolid, 6)
   for (const d of r.fImp) arrow(d.p, d.w * g.reg(t - d.p), C.areaSolid, 6)
   curve(f.reg, C.f, 2)
   for (const d of r.fImp) arrow(d.p, d.w, C.f, 2)
-  curve((tau) => g.reg(t - tau), C.g, 2, G_DASH)
-  for (const d of r.gImp) arrow(t - d.p, d.w, C.g, 2, G_DASH)
+  curve((tau) => g.reg(t - tau), C.g, 2)
+  for (const d of r.gImp) arrow(t - d.p, d.w, C.g, 2)
 
   // Faltungsergebnis bis t
   ctx.strokeStyle = C.conv

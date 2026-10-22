@@ -1,6 +1,7 @@
 import { Download } from 'lucide-react'
 
 import { Brand } from '@/components/brand'
+import { GitHubLink } from '@/components/github-link'
 import { IosSteps } from '@/components/install'
 import { Section } from '@/components/section'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import { getLocale, languageName, locales, m, setLocale } from '@/i18n'
 
 /**
  * Der Tab Einstellungen auf dem Telefon: was der Desktop im Footer hat, als Seite. Zuerst die
- * Sprache, dann die Installation (nur wenn möglich), zuletzt Name und Version.
+ * Sprache, dann die Installation (nur wenn möglich), zuletzt Name, Version und der Link zu GitHub.
  */
 export function SettingsPage({ prompt }: { prompt: InstallPrompt }) {
   return (
@@ -65,7 +66,10 @@ export function SettingsPage({ prompt }: { prompt: InstallPrompt }) {
           <CardTitle>{m.about}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
-          <Brand />
+          <div className="flex items-center justify-between gap-2">
+            <Brand />
+            <GitHubLink />
+          </div>
           <p className="text-muted-foreground">{m.footerNote}</p>
           <p className="text-muted-foreground">{m.credits}</p>
         </CardContent>

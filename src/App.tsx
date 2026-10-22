@@ -8,6 +8,7 @@ import { Controls, Examples } from '@/components/controls'
 import { ConvolutionPlot, type ConvolutionPlotHandle } from '@/components/convolution-plot'
 import { Explanation, Properties } from '@/components/explanation'
 import { FunctionReference } from '@/components/function-reference'
+import { GitHubLink } from '@/components/github-link'
 import { InstallButton } from '@/components/install'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { PwaPrompt } from '@/components/pwa-prompt'
@@ -420,7 +421,7 @@ export default function App() {
   )
 }
 
-/** Logo, Name und Version · Hinweis · Installieren · Sprache. Nur auf dem Desktop. */
+/** Logo, Name und Version · Hinweis · Installieren · Sprache · GitHub. Nur auf dem Desktop. */
 function Footer({ prompt }: { prompt: InstallPrompt }) {
   return (
     <footer className="hidden border-t desktop:block">
@@ -432,6 +433,7 @@ function Footer({ prompt }: { prompt: InstallPrompt }) {
         <div className="flex flex-wrap items-center gap-2">
           <InstallButton prompt={prompt} />
           <LanguageSwitcher />
+          <GitHubLink />
         </div>
       </div>
     </footer>

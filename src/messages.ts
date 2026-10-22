@@ -5,6 +5,7 @@ export const de = {
   appTitle: 'Faltungs-Animator',
   footerNote: 'Rechnet vollständig im Browser, auch offline.',
   credits: 'mathjs · KaTeX · React · shadcn/ui',
+  sourceCode: 'Quellcode auf GitHub',
 
   tabLabel: 'Ansichten',
   tabAnimation: 'Animation',
@@ -128,6 +129,7 @@ export const en: Messages = {
   appTitle: 'Convolution Animator',
   footerNote: 'Computes everything in the browser, offline too.',
   credits: 'mathjs · KaTeX · React · shadcn/ui',
+  sourceCode: 'Source code on GitHub',
 
   tabLabel: 'Views',
   tabAnimation: 'Animation',
