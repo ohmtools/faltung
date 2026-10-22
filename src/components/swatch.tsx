@@ -1,11 +1,11 @@
-import { AREA_ALPHA, G_COLOR } from '@/lib/plot'
+import { AREA_ALPHA } from '@/lib/plot'
 import { cn } from '@/lib/utils'
 
 export type Series = 'f' | 'g' | 'area' | 'conv'
 
 const COLOR: Record<Series, string> = {
   f: 'text-chart-2',
-  g: '', // G_COLOR, kein Token: als style gesetzt
+  g: 'text-[#7E1817] dark:text-[#FCA5A5]', // G_COLOR in plot.ts
   area: 'text-chart-1',
   conv: 'text-foreground',
 }
@@ -17,12 +17,7 @@ const COLOR: Record<Series, string> = {
  */
 export function Swatch({ series, className }: { series: Series; className?: string }) {
   return (
-    <svg
-      viewBox="0 0 16 10"
-      aria-hidden
-      className={cn('h-2.5 w-4 shrink-0', COLOR[series], className)}
-      style={series === 'g' ? { color: G_COLOR } : undefined}
-    >
+    <svg viewBox="0 0 16 10" aria-hidden className={cn('h-2.5 w-4 shrink-0', COLOR[series], className)}>
       {series === 'area' ? (
         <rect width="16" height="10" fill="currentColor" fillOpacity={AREA_ALPHA} />
       ) : (

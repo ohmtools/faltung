@@ -47,12 +47,15 @@ export function toCanvasColor(css: string, alpha?: number): string {
 
 /** Deckkraft der Produktfläche über f und g */
 export const AREA_ALPHA = 0.45
-/** Farbe von g(t−τ): ein dunkleres Rot als f, in hellem und dunklem Schema gleich */
-export const G_COLOR = '#7E1817'
+/**
+ * Farbe von g(t−τ): ein Rot mit mehr Abstand zum Hintergrund als f, hell also dunkler, dunkel
+ * heller. Die Helligkeit unterscheidet g von f, nicht der Farbton. Legende: `swatch.tsx`.
+ */
+export const G_COLOR = { light: '#7E1817', dark: '#FCA5A5' }
 
 /**
  * Die Farben des Plots aus den Tokens des ohmtools-Designs: f in einer Diagrammfarbe (Rot ist die
- * einzige Akzentfarbe), g im dunkleren Rot `G_COLOR`, das Ergebnis in der Textfarbe, Raster und
+ * einzige Akzentfarbe), g in `G_COLOR`, das Ergebnis in der Textfarbe, Raster und
  * Achsen grau.
  */
 export function readPlotColors(el: Element = document.documentElement): PlotColors {
@@ -64,7 +67,7 @@ export function readPlotColors(el: Element = document.documentElement): PlotColo
     axis: v('--muted-foreground'),
     muted: v('--muted-foreground'),
     f: v('--chart-2'),
-    g: G_COLOR,
+    g: el.classList.contains('dark') ? G_COLOR.dark : G_COLOR.light,
     area: toCanvasColor(raw('--chart-1'), AREA_ALPHA),
     areaSolid: v('--chart-1'),
     conv: v('--foreground'),

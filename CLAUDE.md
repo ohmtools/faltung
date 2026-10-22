@@ -16,7 +16,7 @@ Tokens. Vor jeder sichtbaren Änderung DESIGN.md lesen; eine Regel, die sich
   `render={<Button />}` statt `asChild`). `uppercase` und `tracking-wide*`
   nach jedem `shadcn add` entfernen. `sonner.tsx` ist von Hand auf
   `theme="system"` gesetzt, wie in zeiteisen.
-- Plot: f in `--chart-2`, g durchgezogen im dunkleren Rot `#7E1817` (`G_COLOR`), die
+- Plot: f in `--chart-2`, g in `#7E1817`, dunkel `#FCA5A5` (`G_COLOR`), die
   Fläche in `--chart-1`, das Ergebnis in `--foreground` (`src/lib/plot.ts`,
   Legende `src/components/swatch.tsx`). Die Farbe ist nie das einzige Merkmal.
 - Shell wie zeiteisen: Desktop (`desktop:`-Variante) genau eine Ansicht hoch,
