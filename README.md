@@ -33,6 +33,10 @@ npm run release   # aktuelle Version taggen und den Tag pushen
 (`scripts/bump-version.mjs`); sie steht im Footer. Überspringen: `SKIP_VERSION_BUMP=1` oder
 `--no-verify`. Eine von Hand geänderte Version bleibt.
 
+`scripts/og/social-preview.png` ist das Vorschaubild für GitHub (1280×640, nach dem
+ohmtools-Design: Logo, Name und ein Plot von f, g und f ∗ g); es wird von Hand in den
+Repository-Einstellungen unter „Social preview“ hochgeladen.
+
 ## Deployment
 
 `npm run release` pusht den Tag `v<version>` aus `package.json`; der Workflow baut

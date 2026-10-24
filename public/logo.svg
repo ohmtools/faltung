@@ -1,45 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <!-- App-Symbol nach der Vorlage des ohmtools-Designs (assets/app-icon.svg). Hintergrund und
        Rand bleiben, wie sie sind: scripts/app-icons.mjs findet sie an ihrem Radius und an der
-       Deckkraft des Rands. Das Glyph bleibt im Kreis mit 40 % Radius (maskable). -->
-  <defs>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0.15" y2="1">
-      <stop offset="0%" stop-color="#1E232D"/>
-      <stop offset="100%" stop-color="#101216"/>
-    </linearGradient>
-    <radialGradient id="faceGrad" cx="42%" cy="32%" r="75%">
-      <stop offset="0%" stop-color="#262B35"/>
-      <stop offset="100%" stop-color="#12151A"/>
-    </radialGradient>
-    <linearGradient id="bezelGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#F5F5F4"/>
-      <stop offset="45%" stop-color="#D6D3CE"/>
-      <stop offset="100%" stop-color="#8C8884"/>
-    </linearGradient>
-    <linearGradient id="scarletGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#E23A46"/>
-      <stop offset="100%" stop-color="#9E0711"/>
-    </linearGradient>
-    <linearGradient id="maroonGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#9E0711"/>
-      <stop offset="100%" stop-color="#5C040A"/>
-    </linearGradient>
-  </defs>
+       Deckkraft des Rands. Das Glyph bleibt im Kreis mit 40 % Radius (maskable). Flach in den
+       Farben des Plots im dunklen Modus: f blau, g orange, die Fläche violett und schraffiert,
+       der Abspielkopf rot mit Punkt. -->
 
   <!-- Squircle backdrop -->
-  <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="url(#bgGrad)"/>
+  <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="#000000"/>
   <rect x="0.75" y="0.75" width="510.5" height="510.5" rx="111.3" ry="111.3" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="1.5"/>
 
-  <!-- Glyph: zwei Rechteckimpulse und ihre Faltung, ein Dreieck, auf einem Oszilloskop-Schirm -->
+  <!-- Glyph: g gleitet über f, die Überlappung ist die Faltung an der Stelle des Abspielkopfs -->
   <g>
-    <!-- Schirm und Rahmen -->
-    <rect x="106" y="136" width="300" height="240" rx="32" ry="32" fill="url(#faceGrad)" stroke="url(#bezelGrad)" stroke-width="20"/>
+    <!-- f und g -->
+    <rect x="124" y="204" width="160" height="156" rx="12" fill="#0D1F3C" stroke="#2563EB" stroke-width="12"/>
+    <rect x="228" y="204" width="160" height="156" rx="12" fill="#4A1A04" stroke="#F97316" stroke-width="12"/>
+    <!-- Überlappung, schraffiert -->
+    <rect x="228" y="204" width="56" height="156" rx="12" fill="#25104D" stroke="#7C3AED" stroke-width="12"/>
+    <path d="M238 262L274 226M238 302L274 266M238 342L274 306" stroke="#7C3AED" stroke-width="6" stroke-linecap="round"/>
     <!-- Zeitachse -->
-    <rect x="136" y="316" width="240" height="8" rx="4" fill="url(#bezelGrad)"/>
-    <!-- f und g: zwei Rechtecke -->
-    <rect x="156" y="236" width="100" height="80" fill="url(#scarletGrad)"/>
-    <rect x="256" y="236" width="100" height="80" fill="url(#maroonGrad)"/>
-    <!-- f ∗ g: das Dreieck -->
-    <path d="M156 316 L256 176 L356 316" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M100 372H412" stroke="#FAFAFA" stroke-width="16" stroke-linecap="round"/>
+    <!-- Abspielkopf -->
+    <path d="M256 372V148" stroke="#DC2626" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="256" cy="140" r="22" fill="#DC2626"/>
   </g>
 </svg>
