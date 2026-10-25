@@ -11,23 +11,32 @@ import { currentStep, useStep } from "@/lib/ohmtools/steps";
 // content, for longer and again and again. A page of its own on phones (back
 // arrow), a sheet from the right over the content on compact screens, a
 // closable sidebar beside the content on wide screens. Open one panel at a
-// time; `usePanel()` holds the state and moves it the design's way.
+// time; `usePanel()` holds the state and moves it the design's way. A sub
+// view of the panel (zeiteisen's category) passes `onBack`: its back arrow
+// shows on every step and returns to the panel's main view.
 export function Panel({
   open,
   onClose,
+  onBack,
   title,
   subtitle,
   actions,
+  initialFocus = true,
   closeLabel = "Close",
   backLabel = "Back",
   children,
 }: {
   open: boolean;
   onClose: () => void;
+  // A sub view is shown: back to the panel's main view.
+  onBack?: () => void;
   title: string;
   subtitle?: string;
   // Icon buttons beside the title.
   actions?: ReactNode;
+  // `false`: the compact sheet leaves the focus to the panel, which takes
+  // it on its own (a text area opened by a shortcut).
+  initialFocus?: boolean;
   closeLabel?: string;
   backLabel?: string;
   // The panel's content; it scrolls inside the panel.
@@ -44,11 +53,13 @@ export function Panel({
   );
   if (step === "compact") {
     return (
-      <PanelSheet open={open} onClose={onClose}>
+      <PanelSheet open={open} initialFocus={initialFocus} onClose={onClose}>
         <PanelHeader
           title={title}
           subtitle={subtitle}
           actions={actions}
+          onBack={onBack}
+          backLabel={backLabel}
           onClose={onClose}
           closeLabel={closeLabel}
         />
@@ -64,7 +75,8 @@ export function Panel({
         title={title}
         subtitle={subtitle}
         actions={actions}
-        {...(step === "wide" ? { onClose, closeLabel } : { onBack: onClose, backLabel })}
+        backLabel={backLabel}
+        {...(step === "wide" ? { onBack, onClose, closeLabel } : { onBack: onBack ?? onClose })}
       />
       {body}
     </>,

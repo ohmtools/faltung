@@ -44,6 +44,16 @@ export function usePage(active: boolean) {
   useEffect(() => (active ? addPage() : undefined), [active, addPage]);
 }
 
+// The shell's place for pages of its own, marked as open while `active`;
+// `null` outside an `AppShell` (a popup on an error screen), where the caller
+// falls back to another element.
+export function usePageSlot(active: boolean): HTMLElement | null {
+  const shell = useContext(ShellContext);
+  const addPage = shell?.addPage;
+  useEffect(() => (active && addPage ? addPage() : undefined), [active, addPage]);
+  return shell?.slots.page ?? null;
+}
+
 export function AppShell({
   title,
   brand,
@@ -117,8 +127,9 @@ export function AppShell({
     }
     const measure = () => {
       const views = viewsRef.current?.scrollWidth ?? 0;
+      // Three 16px gaps and the 1px divider between brand, views and actions.
       const need =
-        (brandRef.current?.offsetWidth ?? 0) + views + (actionsRef.current?.offsetWidth ?? 0) + 64;
+        (brandRef.current?.offsetWidth ?? 0) + views + (actionsRef.current?.offsetWidth ?? 0) + 49;
       const style = getComputedStyle(row);
       const room = row.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
       setWrap(views > 0 && need > room);
@@ -149,17 +160,25 @@ export function AppShell({
               ref={header}
               className="flex h-14 items-center gap-4 pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] short:h-12 compact:pr-[max(1.5rem,env(safe-area-inset-right))] compact:pl-[max(1.5rem,env(safe-area-inset-left))]"
             >
-              <div ref={brandRef} className="flex min-w-0 shrink-0 items-center gap-2">
+              {/* Phones: the brand gives way to the actions (a long profile
+                  name truncates); from compact on it keeps its width and the
+                  views move to a second row instead. */}
+              <div ref={brandRef} className="flex min-w-0 items-center gap-2 compact:shrink-0">
                 {brand}
               </div>
               {step !== "narrow" && !wrap && (
                 <>
-                  <div aria-hidden className="h-6 w-px shrink-0 bg-border" />
+                  {/* Only where views follow (none on a first visit). */}
+                  <div
+                    aria-hidden
+                    className="h-6 w-px shrink-0 bg-border has-[+div:empty]:hidden"
+                  />
                   {views}
                 </>
               )}
-              <span className="flex-1" />
-              <div ref={actionsRef} className="-mr-2 flex shrink-0 items-center gap-2">
+              {/* `ml-auto`, not a spacer: an empty item would cost a second
+                  gap, room a phone's brand needs. */}
+              <div ref={actionsRef} className="-mr-2 ml-auto flex shrink-0 items-center gap-2">
                 {actions}
               </div>
             </div>
