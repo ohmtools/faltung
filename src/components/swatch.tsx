@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils'
 
 export type Series = 'f' | 'g'
 
-// Wie in src/lib/plot.ts: die Datenfarben des Designs, f durchgezogen, g gestrichelt
+// Wie in src/lib/plot.ts: die Datenfarben des Designs, alle Linien durchgezogen
 const COLOR: Record<Series, string> = {
   f: 'text-kind-ue-border',
   g: 'text-kind-pr-border',
@@ -10,8 +10,7 @@ const COLOR: Record<Series, string> = {
 
 /**
  * Wie der Plot eine Kurve zeichnet, im Kleinen: Farbe und Strich, vor dem Namen der Funktion. Die
- * einzige Zuordnung von Farbe zu Funktion (keine Legende); die Farbe ist nie das einzige Merkmal,
- * g ist auch gestrichelt.
+ * einzige Zuordnung von Farbe zu Funktion (keine Legende), deshalb steht der Name immer daneben.
  */
 export function Swatch({ series, className }: { series: Series; className?: string }) {
   return (
@@ -23,7 +22,6 @@ export function Swatch({ series, className }: { series: Series; className?: stri
         y2="5"
         stroke="currentColor"
         strokeWidth={2}
-        strokeDasharray={series === 'g' ? '4 2.5' : undefined}
       />
     </svg>
   )

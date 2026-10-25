@@ -29,8 +29,8 @@ type Props = {
 
 export type ConvolutionPlotHandle = { toBlob: () => Promise<Blob | null> }
 
-/** Wie lange der y-Bereich zu einem neuen Ergebnis gleitet (`motion.duration-in`) */
-const Y_MS = 280
+/** Wie lange der y-Bereich zu einem neuen Ergebnis gleitet (halbe Geschwindigkeit des Designs) */
+const Y_MS = 560
 const ease = (x: number) => 1 - (1 - x) ** 3
 
 export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function ConvolutionPlot(

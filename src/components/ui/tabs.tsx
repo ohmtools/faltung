@@ -53,7 +53,7 @@ function TabsList({
       {variant === "default" && (
         <TabsPrimitive.Indicator
           data-slot="tabs-indicator"
-          className="absolute top-(--active-tab-top) left-(--active-tab-left) z-0 h-(--active-tab-height) w-(--active-tab-width) rounded-md bg-background shadow-sm transition-[left,width] duration-280 ease-[cubic-bezier(0.2,0,0,1)] dark:border dark:border-input dark:bg-input/30"
+          className="absolute top-(--active-tab-top) left-(--active-tab-left) z-0 h-(--active-tab-height) w-(--active-tab-width) rounded-md bg-background shadow-sm transition-[left,width] duration-560 ease-[cubic-bezier(0.2,0,0,1)] dark:border dark:border-input dark:bg-input/30"
         />
       )}
       {children}

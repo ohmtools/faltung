@@ -105,11 +105,11 @@ export type PlotLayers = {
   g: boolean
   flip: number
   shift?: number
-  /** g(τ) vor dem Spiegeln, gestrichelt in Grau */
+  /** g(τ) vor dem Spiegeln, dünn in Grau */
   ghost: boolean
   /** Produktfläche f(τ)·g(t−τ), 0 … 1 eingeblendet */
   area: number
-  /** Ergebnis bis t; `rest` dazu den Rest gestrichelt; `convOnly` skaliert nur auf das Ergebnis */
+  /** Ergebnis bis t; `rest` dazu den Rest dünn in Grau; `convOnly` skaliert nur auf das Ergebnis */
   conv: boolean
   rest: boolean
   convOnly: boolean
@@ -253,7 +253,6 @@ export function drawPlot(
     ctx.strokeStyle = color
     ctx.fillStyle = color
     ctx.lineWidth = lw
-    ctx.setLineDash([])
     ctx.beginPath()
     ctx.moveTo(px, p0)
     ctx.lineTo(px, p1 + dir * hs * 0.8)
@@ -266,11 +265,12 @@ export function drawPlot(
     ctx.fill()
   }
 
-  const curve = (fn: (x: number) => number, color: string, w: number, dash: number[] = []) => {
+  // Alle Linien durchgezogen (Entscheidung des Nutzers): gestrichelte Linien, die sich bewegen,
+  // verwirren
+  const curve = (fn: (x: number) => number, color: string, w: number) => {
     ctx.strokeStyle = color
     ctx.lineWidth = w
     ctx.lineJoin = 'round'
-    ctx.setLineDash(dash)
     ctx.beginPath()
     for (let j = 0; j <= steps; j++) {
       const tau = tauAt(j)
@@ -280,7 +280,6 @@ export function drawPlot(
       else ctx.moveTo(px, py)
     }
     ctx.stroke()
-    ctx.setLineDash([])
   }
 
   const fg = !layers.convOnly
@@ -318,7 +317,7 @@ export function drawPlot(
   }
 
   if (fg && layers.ghost) {
-    curve(g.reg, C.rest, 1.5, [3, 4])
+    curve(g.reg, C.rest, 1.5)
     for (const d of r.gImp) arrow(d.p, d.w, C.rest, 1.5)
   }
   if (fg && layers.f) {
@@ -326,24 +325,22 @@ export function drawPlot(
     for (const d of r.fImp) arrow(d.p, d.w, C.f, 2)
   }
   if (fg && layers.g) {
-    curve(gAt, C.g, 2, [6, 4])
+    curve(gAt, C.g, 2)
     // Impuls von g bei p: g(shift + s·τ) hat ihn bei τ = (p − shift)/s
     if (Math.abs(s) > 1e-3) for (const d of r.gImp) arrow((d.p - shift) / s, d.w / Math.abs(s), C.g, 2)
   }
 
-  // Ergebnis: bis t durchgezogen, der Rest gestrichelt in Grau
+  // Ergebnis: bis t in der Textfarbe, der Rest dünn in Grau
   const cy = (k: number) => Y(r.conv[k] / r.cScale)
   const cNow = convAt(r, t) / r.cScale
   const kEnd = Math.min(r.NT, Math.floor((t - xmin) / r.h))
   if (layers.rest && kEnd < r.NT) {
     ctx.strokeStyle = C.rest
     ctx.lineWidth = 1.5
-    ctx.setLineDash([3, 4])
     ctx.beginPath()
     ctx.moveTo(X(t), Y(cNow))
     for (let k = Math.max(0, kEnd + 1); k <= r.NT; k++) ctx.lineTo(X(xmin + k * r.h), cy(k))
     ctx.stroke()
-    ctx.setLineDash([])
     for (const d of r.convImp) if (d.p > t) arrow(d.p, d.w / r.cScale, C.rest, 1.5)
   }
   if (layers.conv) {

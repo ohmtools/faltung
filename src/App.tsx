@@ -1,5 +1,5 @@
-import { ChevronLeft, ImageDown, Link2, SlidersHorizontal, X } from 'lucide-react'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { ImageDown, Link2, SlidersHorizontal } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 
@@ -10,12 +10,11 @@ import { ConvolutionPlot, type ConvolutionPlotHandle } from '@/components/convol
 import { GuidePage } from '@/components/guide'
 import { PropertiesPage } from '@/components/properties'
 import { PwaPrompt } from '@/components/pwa-prompt'
-import { SettingsPanel } from '@/components/settings-page'
+import { SettingsDialog, SettingsPage } from '@/components/settings-page'
 import { PageTabs } from '@/components/tab-bar'
 import { Tex } from '@/components/tex'
 import { Transport } from '@/components/transport'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useInstallPrompt } from '@/hooks/use-install-prompt'
 import { useMedia } from '@/hooks/use-media'
@@ -23,7 +22,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { formulaError, localized, m } from '@/i18n'
 import { computeConvolution, type ConvolutionResult } from '@/lib/convolution'
 import { bind, compileFormula, FormulaError, type CompiledFormula } from '@/lib/formula'
-import { COMPACT_QUERY, LG_QUERY, WIDE_QUERY } from '@/lib/media'
+import { COMPACT_QUERY, LG_QUERY } from '@/lib/media'
 import { PAGES, type Page } from '@/lib/pages'
 import { GLIDE_MS, Playhead } from '@/lib/playhead'
 import {
@@ -39,7 +38,7 @@ import {
 import { cn } from '@/lib/utils'
 
 /** Dauer eines Durchlaufs über den ganzen Bereich bei 1× */
-const SWEEP_MS = 6000
+const SWEEP_MS = 12000
 
 type Compiled = { ok: true; c: CompiledFormula } | { ok: false; error: string }
 
@@ -143,7 +142,6 @@ export default function App() {
   const installPrompt = useInstallPrompt()
   const reduce = useReducedMotion()
   const compact = useMedia(COMPACT_QUERY)
-  const wide = useMedia(WIDE_QUERY)
   const lg = useMedia(LG_QUERY)
   const plotRef = useRef<ConvolutionPlotHandle>(null)
 
@@ -255,7 +253,7 @@ export default function App() {
   }, [])
 
   // Seiten: Animator, Anleitung, Eigenschaften; die Einstellungen sind auf dem Telefon eine eigene
-  // Seite, ab `compact:` ein Blatt von rechts, breit eine Seitenleiste
+  // Seite, ab `compact:` ein Dialog
   const [page, setPage] = useState<Page>('animator')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsPage = settingsOpen && !compact
@@ -417,21 +415,8 @@ export default function App() {
   }
   const problem = controlsProblem({ ...controls, settings: applied })
 
-  // Die Seitenleiste der Einstellungen kommt von rechts herein
-  const asideRef = useRef<HTMLElement>(null)
-  useLayoutEffect(() => {
-    if (!settingsOpen || !wide || reduce) return
-    asideRef.current?.animate(
-      [
-        { opacity: 0, transform: 'translateX(24px)' },
-        { opacity: 1, transform: 'none' },
-      ],
-      { duration: 280, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
-    )
-  }, [settingsOpen, wide, reduce])
-
   const settingsIcon = (
-    <HeaderButton label={m.settings} onClick={toggleSettings} pressed={compact ? settingsOpen : undefined}>
+    <HeaderButton label={m.settings} onClick={toggleSettings}>
       <SlidersHorizontal />
     </HeaderButton>
   )
@@ -440,27 +425,19 @@ export default function App() {
     <TooltipProvider>
       {/* Jede Stufe ist genau eine Ansicht hoch, die Seite scrollt nie; was nicht passt, scrollt in
           sich. Platz für die Notch im Querformat. */}
-      <div className="flex h-dvh flex-col overflow-hidden pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
-        <header className="shrink-0 border-b pt-[env(safe-area-inset-top)]">
+      <div className="flex h-dvh flex-col overflow-hidden text-sm pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
+        <header className={cn('shrink-0 border-b pt-[env(safe-area-inset-top)]', settingsPage && 'hidden')}>
           <div className="flex h-14 items-center justify-between gap-4 pr-2 pl-4 short:h-12 compact:px-6">
-            {settingsPage ? (
-              <div className="flex min-w-0 items-center gap-1">
-                <h1 className="sr-only">{m.appTitle}</h1>
-                <Button variant="ghost" size="icon" className="-ml-2.5 size-10" onClick={toggleSettings} aria-label={m.back}>
-                  <ChevronLeft />
-                </Button>
-                <h2 className="font-heading text-base font-semibold">{m.settings}</h2>
-              </div>
-            ) : (
+            {
               <div className="flex min-w-0 items-center gap-6">
                 <div className="flex items-center gap-2.5">
                   <Logo />
-                  <h1 className="font-heading text-base font-semibold compact:text-sm">{m.appTitle}</h1>
+                  <h1 className="font-heading text-base font-semibold">{m.appTitle}</h1>
                 </div>
                 <PageTabs value={page} onChange={goPage} className="hidden compact:block" />
               </div>
-            )}
-            {!settingsPage && (
+            }
+            {(
               <div className="flex items-center gap-2">
                 {page === 'animator' && (
                   <>
@@ -486,11 +463,7 @@ export default function App() {
 
         <div className="flex min-h-0 flex-1">
           <div className="page-view flex min-h-0 min-w-0 flex-1 flex-col">
-            {settingsPage && (
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <SettingsPanel prompt={installPrompt} />
-              </div>
-            )}
+            {settingsPage && <SettingsPage prompt={installPrompt} onClose={toggleSettings} navigate={navigate} />}
 
             <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'animator' || settingsPage) && 'hidden')}>
               <div className="shrink-0 border-b py-2.5 pr-2 pl-4 compact:px-6 lg:py-4">
@@ -529,34 +502,12 @@ export default function App() {
             </div>
           </div>
 
-          {wide && settingsOpen && (
-            <aside ref={asideRef} className="flex w-85 shrink-0 flex-col border-l" aria-label={m.settings}>
-              <div className="flex h-14 shrink-0 items-center justify-between border-b pr-3 pl-6">
-                <h2 className="font-heading text-base font-semibold">{m.settings}</h2>
-                <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(false)} aria-label={m.close}>
-                  <X />
-                </Button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <SettingsPanel prompt={installPrompt} />
-              </div>
-            </aside>
-          )}
         </div>
 
-        <PageTabs value={page} onChange={goPage} bar className="compact:hidden" />
+        <PageTabs value={page} onChange={goPage} bar className={cn('compact:hidden', settingsPage && 'hidden')} />
       </div>
 
-      <Sheet open={compact && !wide && settingsOpen} onOpenChange={setSettingsOpen}>
-        <SheetContent side="right" closeLabel={m.close} className="w-95 max-w-[calc(100vw-2rem)] gap-0 sm:max-w-95">
-          <SheetHeader className="border-b px-6">
-            <SheetTitle className="text-base font-semibold">{m.settings}</SheetTitle>
-          </SheetHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
-            <SettingsPanel prompt={installPrompt} />
-          </div>
-        </SheetContent>
-      </Sheet>
+      <SettingsDialog open={compact && settingsOpen} onClose={() => setSettingsOpen(false)} prompt={installPrompt} />
       <PwaPrompt />
       <AppToaster />
     </TooltipProvider>

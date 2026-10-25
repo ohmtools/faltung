@@ -326,10 +326,10 @@ export function FormulaSummary(props: ControlsProps & { onPreset: (p: Preset) =>
             >
               <CircleHelp data-icon="inline-start" />
               {m.referenceTitle}
-              <ChevronDown data-icon="inline-end" className={cn('transition-transform duration-200', reference && 'rotate-180')} />
+              <ChevronDown data-icon="inline-end" className={cn('transition-transform duration-400', reference && 'rotate-180')} />
             </Button>
             {reference && (
-              <div className="animate-in pt-2 duration-280 fade-in-0 slide-in-from-top-2">
+              <div className="animate-in pt-2 duration-560 fade-in-0 slide-in-from-top-2">
                 <FunctionReference />
               </div>
             )}

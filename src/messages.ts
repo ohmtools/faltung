@@ -12,6 +12,8 @@ export const de = {
   pageGuide: 'Anleitung',
   pageProperties: 'Eigenschaften',
   settings: 'Einstellungen',
+  settingsGeneral: 'Allgemein',
+  themeHint: 'Hell oder dunkel folgt dem Gerät.',
   back: 'Zurück',
   close: 'Schließen',
 
@@ -138,6 +140,8 @@ export const en: Messages = {
   pageGuide: 'Guide',
   pageProperties: 'Properties',
   settings: 'Settings',
+  settingsGeneral: 'General',
+  themeHint: 'Light or dark follows the device.',
   back: 'Back',
   close: 'Close',
 

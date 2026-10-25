@@ -28,8 +28,8 @@ const STEPS: { title: Localized; tex: string; short: string; text: Localized; hi
       en: 'The second function is mirrored about the vertical axis.',
     },
     hint: {
-      de: 'Grau gestrichelt bleibt g, wie es vor dem Spiegeln war.',
-      en: 'The grey dashed curve is g as it was before mirroring.',
+      de: 'Die graue Linie zeigt g, wie es vor dem Spiegeln war.',
+      en: 'The grey line is g as it was before mirroring.',
     },
   },
   {
@@ -74,7 +74,7 @@ const STEPS: { title: Localized; tex: string; short: string; text: Localized; hi
 ]
 
 /** Wie lange ein Schritt sein Bild aufbaut: Spiegeln, Verschieben, Fläche, Ergebnis */
-const STEP_MS = [900, 700, 400, 1200]
+const STEP_MS = [1800, 1400, 800, 2400]
 // Umklappen und Gleiten sanft an beiden Enden, damit man der Bewegung folgen kann
 const ease = (x: number) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2)
 
@@ -205,7 +205,7 @@ export function GuidePage({
         { opacity: 0, transform: `translateX(${dir.current * 24}px)` },
         { opacity: 1, transform: 'none' },
       ],
-      { duration: 280, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+      { duration: 560, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
     )
   }, [step, reduce])
 
@@ -258,16 +258,16 @@ export function GuidePage({
               {STEPS.map((x, i) => (
                 <span
                   key={x.tex}
-                  className={cn('h-1 rounded-full bg-muted transition-colors duration-280', i <= step && 'bg-foreground')}
+                  className={cn('h-1 rounded-full bg-muted transition-colors duration-560', i <= step && 'bg-foreground')}
                 />
               ))}
             </div>
             <StepOf step={step} />
           </div>
           <div ref={textRef} className="flex shrink-0 flex-col gap-1">
-            <h2 className="text-xl font-semibold tracking-tight">{localized(s.title)}</h2>
+            <h2 className="font-heading text-base font-semibold">{localized(s.title)}</h2>
             <Tex math={s.tex} className="overflow-x-auto overflow-y-hidden" />
-            <p className="mt-1 text-base text-muted-foreground">{localized(s.text)}</p>
+            <p className="mt-1 text-muted-foreground">{localized(s.text)}</p>
           </div>
           {plot}
           <TSlider key={String(active)} result={result} playhead={playhead} wide={false} />
@@ -298,7 +298,7 @@ export function GuidePage({
                 >
                   <span
                     className={cn(
-                      'flex size-6 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-semibold transition-colors duration-280',
+                      'flex size-6 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-semibold transition-colors duration-560',
                       current
                         ? 'bg-primary text-primary-foreground'
                         : i < step
@@ -343,7 +343,7 @@ export function GuidePage({
               aria-current={i === step ? 'step' : undefined}
               onClick={() => goTo(i)}
               className={cn(
-                'flex flex-col gap-1.5 rounded-lg border p-2 text-left text-xs transition-[border-color,translate] duration-200 outline-none hover:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px',
+                'flex flex-col gap-1.5 rounded-lg border p-2 text-left text-xs transition-[border-color,translate] duration-400 outline-none hover:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px',
                 i === step && 'border-foreground font-medium hover:border-foreground',
               )}
             >

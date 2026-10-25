@@ -23,22 +23,28 @@ Apps.
   Designs, freien Ecken `rounded-lg` und `closeLabel`.
 - Drei Seiten: Animator, Anleitung, Eigenschaften (`src/lib/pages.ts`). Ab `compact:`
   als Tabs im Header neben Logo und Name, auf dem Telefon als Tab-Leiste unten.
-  Einstellungen: auf dem Telefon eine eigene Seite, ab `compact:` ein Blatt von rechts,
-  ab `wide:` eine Seitenleiste. Jede Stufe ist eine Ansicht hoch, die Seite scrollt nie.
+  Einstellungen wie in zeiteisen (`src/components/settings-page.tsx`): ab `compact:` ein
+  Dialog mit den Abschnitten links, auf dem Telefon eine Seite mit der Liste der
+  Abschnitte, jeder eine eigene Seite. `ui/dialog.tsx` ist zeiteisens (mit dessen
+  Handanpassungen). Jede Stufe ist eine Ansicht hoch, die Seite scrollt nie.
+- Schrift: Grundgröße 14 px (`text-sm` an der Wurzel der App, wie zeiteisens
+  Komponenten), Überschriften 16 px, Hinweise und Werte in der Leiste 12 px.
 - Animator: ab `lg:` die Formelzeile über dem Plot (f, Tauschen, g, T, Bereich,
   Funktionsreferenz im Popover), darunter die Bedienleiste mit Zeitleiste (Ergebnis als
   kleine Kurve); unter `lg:` ein Blatt von unten zum Bearbeiten mit Bausteinen und
   Beispielen.
-- Plot (`src/lib/plot.ts`): f in `--kind-ue-border` (blau, durchgezogen), g in
-  `--kind-pr-border` (orange, gestrichelt), die Produktfläche in `--kind-s` mit
+- Plot (`src/lib/plot.ts`): f in `--kind-ue-border` (blau), g in
+  `--kind-pr-border` (orange), die Produktfläche in `--kind-s` mit
   Schraffur in `--kind-s-border` (violett wie im Logo), das Ergebnis in
-  `--foreground`, der noch nicht berechnete Rest gestrichelt in `--ring`, der
-  Abspielkopf in `--accent-red` mit Punkt oben. Im Plot keine Beschriftung der
+  `--foreground`, der noch nicht berechnete Rest dünn in `--ring`, der
+  Abspielkopf in `--accent-red` mit Punkt oben. Keine gestrichelten Linien, vor allem
+  keine bewegten (Entscheidung des Nutzers: das verwirrt). Im Plot keine Beschriftung der
   Kurven und keine Legende (Entscheidung des Nutzers, weicht von DESIGN.md ab); die
   Zuordnung steht als Strich vor f und g (`src/components/swatch.tsx`). Zahlen an
   der x-Achse in T, an der y-Achse links für f und g, rechts für das Ergebnis in T.
   Der Wertebereich endet knapp über dem Größten und bei 0, solange nichts negativ ist.
-- Bewegung nach DESIGN.md: Seitenwechsel als View Transition (nur die neue Seite,
+- Bewegung nach DESIGN.md, aber mit halber Geschwindigkeit (Entscheidung des
+  Nutzers): 560 ms herein, 400 ms hinaus, der Durchlauf bei 1× 12 s. Seitenwechsel als View Transition (nur die neue Seite,
   von der Seite ihres Tabs), gleitende Tab-Indikatoren, Sprünge von t gleiten
   (`Playhead.glideTo`), ein neues Ergebnis lässt den y-Bereich gleiten, die
   Anleitung baut jeden Schritt auf (g klappt um, gleitet nach t, die Fläche blendet

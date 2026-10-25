@@ -263,7 +263,7 @@
   opacity: 0;
 }
 ::view-transition-new(page) {
-  animation: faltung-page-in 280ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: faltung-page-in 560ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 :root[data-nav="back"]::view-transition-new(page) {
   animation-name: faltung-page-in-back;
@@ -271,10 +271,10 @@
 :root[data-nav="close"]::view-transition-old(page) {
   z-index: 1;
   opacity: 1;
-  animation: faltung-page-out 200ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: faltung-page-out 400ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 :root[data-nav="close"]::view-transition-new(page) {
-  animation: faltung-fade-in 200ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation: faltung-fade-in 400ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 ::view-transition-old(root),
 ::view-transition-new(root) {
