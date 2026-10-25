@@ -26,7 +26,8 @@ Apps.
   Einstellungen wie in zeiteisen (`src/components/settings-page.tsx`): ab `compact:` ein
   Dialog mit den Abschnitten links, auf dem Telefon eine Seite mit der Liste der
   Abschnitte, jeder eine eigene Seite. `ui/dialog.tsx` ist zeiteisens (mit dessen
-  Handanpassungen). Jede Stufe ist eine Ansicht hoch, die Seite scrollt nie.
+  Handanpassungen; hier dazu: Abdunklung und Dialog gleich lang, `fill-mode-forwards`
+  beim Schließen, sonst springt die Abdunklung zurück). Jede Stufe ist eine Ansicht hoch, die Seite scrollt nie.
 - Schrift: Grundgröße 14 px (`text-sm` an der Wurzel der App, wie zeiteisens
   Komponenten), Überschriften 16 px, Hinweise und Werte in der Leiste 12 px.
 - Animator: ab `lg:` die Formelzeile über dem Plot (f, Tauschen, g, T, Bereich,
