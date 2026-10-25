@@ -40,14 +40,16 @@ Apps.
 - Animator: ab `lg:` die Formelzeile über dem Plot (f, Tauschen, g, T, Bereich,
   Funktionsreferenz im Popover), darunter die Bedienleiste mit Zeitleiste (Ergebnis als
   kleine Kurve); unter `lg:` ein Blatt von unten zum Bearbeiten mit Bausteinen und
-  Beispielen.
+  Beispielen, auf dem Telefon hochkant ein Drawer zum Wegwischen (`EditSheet`, wie die
+  Details eines Fachs in zeiteisen; Entscheidung des Nutzers). `ui/drawer.tsx` ist
+  zeiteisens (mit dessen Handanpassungen).
 - Anleitung (`src/components/guide.tsx`): ab `wide:` links die Schritte mit Text und
   Hinweis, rechts Vorschaubilder, Plot, Ergebnis und Regler; sonst ein Schritt auf einmal
   (Text und Hinweis darunter) mit Zurück/Weiter unten. Das Beispiel ab `compact:` als
   Menü im Header, auf dem Telefon als Knopf oben in der Anleitung, der ein Blatt von unten
   mit der Liste öffnet (`ExamplesSheet`; DESIGN.md: Menüs auf dem Telefon von unten). Ein
-  Blatt (`Sheet`) und kein Drawer, wie die Beispiele im Blatt zum Bearbeiten
-  (Entscheidung des Nutzers: Beispiel und Hinweise auch auf dem Telefon).
+  Blatt (`Sheet`) und kein Drawer (Entscheidung des Nutzers: Beispiel und Hinweise auch
+  auf dem Telefon).
 - Plot (`src/lib/plot.ts`): f in `--kind-ue-border` (blau), g in
   `--kind-pr-border` (orange), die Produktfläche in `--kind-s` mit
   Schraffur in `--kind-s-border` (violett wie im Logo), das Ergebnis in

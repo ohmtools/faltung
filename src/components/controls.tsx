@@ -1,10 +1,11 @@
 import { ArrowLeftRight, ArrowUpDown, Check, ChevronDown, CircleHelp, Pencil } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { type ReactNode, type RefObject, useRef, useState } from 'react'
 
 import { FunctionInput } from '@/components/function-input'
 import { FunctionReference } from '@/components/function-reference'
 import { Swatch } from '@/components/swatch'
 import { Button } from '@/components/ui/button'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useMedia } from '@/hooks/use-media'
 import { localized, m } from '@/i18n'
+import { COMPACT_QUERY } from '@/lib/media'
 import { parseNumber, PRESETS, type Preset, type Settings } from '@/lib/presets'
 import { cn } from '@/lib/utils'
 
@@ -168,8 +171,8 @@ export function ExamplesMenu({ onPreset, label = m.examples }: { onPreset: (p: P
 
 /**
  * Die Beispiele der Anleitung auf dem Telefon (ab `compact:` stehen sie als `ExamplesMenu` im
- * Header): ein Knopf mit dem gewählten Beispiel öffnet ein Blatt von unten mit der Liste, wie die
- * Beispiele im Blatt zum Bearbeiten des Animators (DESIGN.md: Menüs auf dem Telefon von unten).
+ * Header): ein Knopf mit dem gewählten Beispiel öffnet ein Blatt von unten mit der Liste
+ * (DESIGN.md: Menüs auf dem Telefon von unten).
  * Das gewählte trägt einen Haken.
  */
 export function ExamplesSheet({
@@ -234,7 +237,7 @@ const BLOCKS = ['rect()', 'tri()', 'u()', 'delta()', 'exp()', 'sin()', 'T']
 
 /**
  * Unter `lg:` steht über dem Plot nur, was f und g sind, mit „Bearbeiten“: das öffnet ein Blatt von
- * unten mit den Eingaben, Bausteinen zum Einfügen (Telefontastaturen haben keine Klammern auf der
+ * unten (auf dem Telefon hochkant ein Drawer, `EditSheet`) mit den Eingaben, Bausteinen zum Einfügen (Telefontastaturen haben keine Klammern auf der
  * ersten Ebene), dem Bereich, den Beispielen und der Funktionsreferenz.
  */
 export function FormulaSummary(props: ControlsProps & { onPreset: (p: Preset) => void; activePreset: Preset | null }) {
@@ -284,138 +287,176 @@ export function FormulaSummary(props: ControlsProps & { onPreset: (p: Preset) =>
         </Button>
       </div>
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent
-          side="bottom"
-          closeLabel={m.close}
-          initialFocus={titleRef}
-          // Schmaler als der Bildschirm (ab 42rem) hat das Blatt auch links und rechts eine freie Kante
-          className="mx-auto max-h-[90dvh] max-w-2xl gap-0 overflow-y-auto pb-[env(safe-area-inset-bottom)] min-[42rem]:border-x"
-        >
-          <SheetHeader className="pb-2">
-            <SheetTitle ref={titleRef} tabIndex={-1} className="text-base font-semibold outline-none">
-              {m.functionsTitle}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="flex flex-col gap-4 border-b px-4 pb-4">
-            <FunctionInput
-              ref={fRef}
-              id="f-in"
-              name="f"
-              value={settings.f}
-              onChange={(f) => onChange({ f })}
-              onFocus={() => (last.current = 'f')}
-              error={fError}
-              tex={fTex}
-            />
-            <div
-              role="group"
-              aria-label={m.insert}
-              className="relative -mx-4 -mt-2 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]"
-            >
-              {BLOCKS.map((b) => (
-                <Button
-                  key={b}
-                  variant="outline"
-                  size="sm"
-                  className="font-mono"
-                  // die Schreibmarke bleibt im Eingabefeld
-                  onPointerDown={(e) => e.preventDefault()}
-                  onClick={() => insert(b)}
-                >
-                  {b}
-                </Button>
-              ))}
-            </div>
-            <div className="flex items-start gap-2">
-              <FunctionInput
-                ref={gRef}
-                id="g-in"
-                name="g"
-                value={settings.g}
-                onChange={(g) => onChange({ g })}
-                onFocus={() => (last.current = 'g')}
-                error={gError}
-                tex={gTex}
-                className="flex-1"
-              />
-              <Button variant="outline" size="icon" className="mt-6 size-10" onClick={onSwap} aria-label={m.swap}>
-                <ArrowUpDown />
+      <EditSheet open={open} onOpenChange={setOpen} titleRef={titleRef}>
+        <div className="flex flex-col gap-4 border-b px-4 pb-4">
+          <FunctionInput
+            ref={fRef}
+            id="f-in"
+            name="f"
+            value={settings.f}
+            onChange={(f) => onChange({ f })}
+            onFocus={() => (last.current = 'f')}
+            error={fError}
+            tex={fTex}
+          />
+          <div
+            role="group"
+            aria-label={m.insert}
+            className="relative -mx-4 -mt-2 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]"
+          >
+            {BLOCKS.map((b) => (
+              <Button
+                key={b}
+                variant="outline"
+                size="sm"
+                className="font-mono"
+                // die Schreibmarke bleibt im Eingabefeld
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => insert(b)}
+              >
+                {b}
               </Button>
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="t-in">T</Label>
-                  <NumberInput id="t-in" value={settings.T} onChange={(T) => onChange({ T })} invalid={Tbad} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="a-in">{m.from}</Label>
-                  <NumberInput id="a-in" value={settings.a} onChange={(a) => onChange({ a })} invalid={!!rangeError} signed />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="b-in">{m.to}</Label>
-                  <NumberInput id="b-in" value={settings.b} onChange={(b) => onChange({ b })} invalid={!!rangeError} signed />
-                </div>
-              </div>
-              {(rangeError || Tbad) && (
-                <p className="text-xs text-destructive" aria-live="polite">
-                  {Tbad ? m.periodPositive : rangeError}
-                </p>
-              )}
-            </div>
+            ))}
           </div>
-
-          <div className="flex flex-col gap-2 pt-4">
-            <h3 className="mx-4 text-sm font-medium">{m.examples}</h3>
-            <div className="relative flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]">
-              {PRESETS.map((p) => (
-                <Button
-                  key={p.name.de}
-                  variant="outline"
-                  size="sm"
-                  aria-pressed={p === activePreset}
-                  className="aria-pressed:bg-accent"
-                  onClick={() => onPreset(p)}
-                >
-                  {localized(p.name)}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col px-4 pt-4">
-            <Button
-              variant="ghost"
-              className="-ml-2.5 self-start text-muted-foreground"
-              aria-expanded={reference}
-              onClick={() => setReference((r) => !r)}
-            >
-              <CircleHelp data-icon="inline-start" />
-              {m.referenceTitle}
-              <ChevronDown
-                data-icon="inline-end"
-                className={cn(
-                  'transition-transform duration-400 ease-[cubic-bezier(0.2,0,0,1)]',
-                  reference && 'rotate-180',
-                )}
-              />
+          <div className="flex items-start gap-2">
+            <FunctionInput
+              ref={gRef}
+              id="g-in"
+              name="g"
+              value={settings.g}
+              onChange={(g) => onChange({ g })}
+              onFocus={() => (last.current = 'g')}
+              error={gError}
+              tex={gTex}
+              className="flex-1"
+            />
+            <Button variant="outline" size="icon" className="mt-6 size-10" onClick={onSwap} aria-label={m.swap}>
+              <ArrowUpDown />
             </Button>
-            {reference && (
-              <div className="animate-in pt-2 duration-560 ease-[cubic-bezier(0.2,0,0,1)] fade-in-0 slide-in-from-top-2">
-                <FunctionReference />
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="t-in">T</Label>
+                <NumberInput id="t-in" value={settings.T} onChange={(T) => onChange({ T })} invalid={Tbad} />
               </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="a-in">{m.from}</Label>
+                <NumberInput id="a-in" value={settings.a} onChange={(a) => onChange({ a })} invalid={!!rangeError} signed />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="b-in">{m.to}</Label>
+                <NumberInput id="b-in" value={settings.b} onChange={(b) => onChange({ b })} invalid={!!rangeError} signed />
+              </div>
+            </div>
+            {(rangeError || Tbad) && (
+              <p className="text-xs text-destructive" aria-live="polite">
+                {Tbad ? m.periodPositive : rangeError}
+              </p>
             )}
           </div>
+        </div>
 
-          <div className="p-4 pb-6">
-            <Button className="h-11 w-full" onClick={() => setOpen(false)}>
-              {m.done}
-            </Button>
+        <div className="flex flex-col gap-2 pt-4">
+          <h3 className="mx-4 text-sm font-medium">{m.examples}</h3>
+          <div className="relative flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]">
+            {PRESETS.map((p) => (
+              <Button
+                key={p.name.de}
+                variant="outline"
+                size="sm"
+                aria-pressed={p === activePreset}
+                className="aria-pressed:bg-accent"
+                onClick={() => onPreset(p)}
+              >
+                {localized(p.name)}
+              </Button>
+            ))}
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+
+        <div className="flex flex-col px-4 pt-4">
+          <Button
+            variant="ghost"
+            className="-ml-2.5 self-start text-muted-foreground"
+            aria-expanded={reference}
+            onClick={() => setReference((r) => !r)}
+          >
+            <CircleHelp data-icon="inline-start" />
+            {m.referenceTitle}
+            <ChevronDown
+              data-icon="inline-end"
+              className={cn(
+                'transition-transform duration-400 ease-[cubic-bezier(0.2,0,0,1)]',
+                reference && 'rotate-180',
+              )}
+            />
+          </Button>
+          {reference && (
+            <div className="animate-in pt-2 duration-560 ease-[cubic-bezier(0.2,0,0,1)] fade-in-0 slide-in-from-top-2">
+              <FunctionReference />
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 pb-6">
+          <Button className="h-11 w-full" onClick={() => setOpen(false)}>
+            {m.done}
+          </Button>
+        </div>
+      </EditSheet>
     </>
+  )
+}
+
+/**
+ * Der Behälter des Blatts zum Bearbeiten: auf dem Telefon hochkant ein Drawer von unten, der sich
+ * wegwischen lässt (wie die Details eines Fachs in zeiteisen), ab `compact:` ein Blatt von unten.
+ */
+function EditSheet({
+  open,
+  onOpenChange,
+  titleRef,
+  children,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  titleRef: RefObject<HTMLHeadingElement | null>
+  children: ReactNode
+}) {
+  const compact = useMedia(COMPACT_QUERY)
+  const title = 'text-base font-semibold outline-none'
+  if (!compact) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
+        <DrawerContent initialFocus={titleRef}>
+          <div className="relative flex flex-col overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+            <DrawerTitle ref={titleRef} tabIndex={-1} className={cn(title, 'px-4 pt-4 pb-2')}>
+              {m.functionsTitle}
+            </DrawerTitle>
+            {children}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        closeLabel={m.close}
+        initialFocus={titleRef}
+        // Schmaler als der Bildschirm (ab 42rem) hat das Blatt auch links und rechts eine freie Kante
+        className="mx-auto max-h-[90dvh] max-w-2xl gap-0 overflow-y-auto pb-[env(safe-area-inset-bottom)] min-[42rem]:border-x"
+      >
+        <SheetHeader className="pb-2">
+          <SheetTitle ref={titleRef} tabIndex={-1} className={title}>
+            {m.functionsTitle}
+          </SheetTitle>
+        </SheetHeader>
+        {children}
+      </SheetContent>
+    </Sheet>
   )
 }
 
