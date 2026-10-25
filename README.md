@@ -15,8 +15,10 @@ Eigenschaften der Faltung.
 
 Vite + React 19 + TypeScript, shadcn/ui (`base-vega`, Base UI), Tailwind v4, mathjs (Parser),
 KaTeX. Das Erscheinungsbild folgt dem [ohmtools-Design](https://github.com/ohmtools/design)
-(`src/index.css` und `components.json` kommen von dort, die CI prüft sie). Texte der Oberfläche:
-`src/messages.ts`.
+(`components.json`, das Stylesheet `src/styles/ohmtools.css` und die Komponenten in
+`src/components/ohmtools/`, `src/components/ui/` (bis auf `slider` und `table`) und
+`src/lib/ohmtools/` kommen von dort, geholt mit `npx --yes github:ohmtools/design add …`; die CI
+prüft, dass sie unverändert sind). Texte der Oberfläche: `src/messages.ts`.
 Kern: `src/lib/formula.ts` (Formel → JS-Funktion), `src/lib/convolution.ts`, `src/lib/plot.ts`.
 
 ## Entwicklung

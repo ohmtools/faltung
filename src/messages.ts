@@ -41,7 +41,6 @@ export const de = {
 
   functionsTitle: 'Funktionen',
   edit: 'Bearbeiten',
-  done: 'Fertig',
   insert: 'Bausteine einfügen',
   swap: 'f und g tauschen',
   range: 'Bereich',
@@ -169,7 +168,6 @@ export const en: Messages = {
 
   functionsTitle: 'Functions',
   edit: 'Edit',
-  done: 'Done',
   insert: 'Insert building blocks',
   swap: 'Swap f and g',
   range: 'Range',

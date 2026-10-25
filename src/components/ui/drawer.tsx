@@ -1,24 +1,25 @@
-import * as React from "react"
-import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
-import { cn } from "@/lib/utils"
+// ohmtools/design: shadcn/src/components/ui/drawer.tsx (copied by `ohmtools-design add`, do not edit)
+import * as React from "react";
+import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
+import { cn } from "@/lib/utils";
 
 type DrawerContextProps = {
-  hasSnapPoints: boolean
-  modal: DrawerPrimitive.Root.Props["modal"]
-  showSwipeHandle: boolean
-  swipeDirection: NonNullable<DrawerPrimitive.Root.Props["swipeDirection"]>
-}
+  hasSnapPoints: boolean;
+  modal: DrawerPrimitive.Root.Props["modal"];
+  showSwipeHandle: boolean;
+  swipeDirection: NonNullable<DrawerPrimitive.Root.Props["swipeDirection"]>;
+};
 
-const DrawerContext = React.createContext<DrawerContextProps | null>(null)
+const DrawerContext = React.createContext<DrawerContextProps | null>(null);
 
 function useDrawer() {
-  const context = React.useContext(DrawerContext)
+  const context = React.useContext(DrawerContext);
 
   if (!context) {
-    throw new Error("useDrawer must be used within a Drawer.")
+    throw new Error("useDrawer must be used within a Drawer.");
   }
 
-  return context
+  return context;
 }
 
 function Drawer({
@@ -28,13 +29,13 @@ function Drawer({
   swipeDirection = "down",
   ...props
 }: DrawerPrimitive.Root.Props & {
-  showSwipeHandle?: boolean
+  showSwipeHandle?: boolean;
 }) {
-  const hasSnapPoints = snapPoints != null && snapPoints.length > 0
+  const hasSnapPoints = snapPoints != null && snapPoints.length > 0;
   const contextValue = React.useMemo(
     () => ({ hasSnapPoints, modal, showSwipeHandle, swipeDirection }),
     [hasSnapPoints, modal, showSwipeHandle, swipeDirection],
-  )
+  );
 
   return (
     <DrawerContext.Provider value={contextValue}>
@@ -46,19 +47,19 @@ function Drawer({
         {...props}
       />
     </DrawerContext.Provider>
-  )
+  );
 }
 
 function DrawerTrigger({ ...props }: DrawerPrimitive.Trigger.Props) {
-  return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />
+  return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 }
 
 function DrawerPortal({ ...props }: DrawerPrimitive.Portal.Props) {
-  return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />
+  return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />;
 }
 
 function DrawerClose({ ...props }: DrawerPrimitive.Close.Props) {
-  return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />
+  return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />;
 }
 
 function DrawerOverlay({ className, ...props }: DrawerPrimitive.Backdrop.Props) {
@@ -66,12 +67,12 @@ function DrawerOverlay({ className, ...props }: DrawerPrimitive.Backdrop.Props) 
     <DrawerPrimitive.Backdrop
       data-slot="drawer-overlay"
       className={cn(
-        "bg-black/40 dark:bg-black/70 fixed inset-0 z-50 min-h-dvh opacity-[max(var(--drawer-overlay-min-opacity,0),calc(1-var(--drawer-swipe-progress)))] transition-opacity duration-560 ease-[cubic-bezier(0.32,0.72,0,1)] select-none data-ending-style:pointer-events-none data-ending-style:opacity-0 data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-snap-points:[--drawer-overlay-min-opacity:0.5] data-starting-style:opacity-0 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute",
+        "bg-black/40 dark:bg-black/70  fixed inset-0 z-50 min-h-dvh opacity-[max(var(--drawer-overlay-min-opacity,0),calc(1-var(--drawer-swipe-progress)))] transition-opacity duration-560 ease-[cubic-bezier(0.32,0.72,0,1)] select-none data-ending-style:pointer-events-none data-ending-style:opacity-0 data-ending-style:duration-[calc(var(--drawer-swipe-strength)*400ms)] data-snap-points:[--drawer-overlay-min-opacity:0.5] data-starting-style:opacity-0 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute",
         className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function DrawerSwipeHandle({ className, ...props }: React.ComponentProps<"div">) {
@@ -85,12 +86,12 @@ function DrawerSwipeHandle({ className, ...props }: React.ComponentProps<"div">)
       )}
       {...props}
     />
-  )
+  );
 }
 
 function DrawerContent({ className, children, ...props }: DrawerPrimitive.Popup.Props) {
-  const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
-  const swipeAxis = swipeDirection === "down" || swipeDirection === "up" ? "y" : "x"
+  const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer();
+  const swipeAxis = swipeDirection === "down" || swipeDirection === "up" ? "y" : "x";
 
   return (
     <DrawerPortal data-slot="drawer-portal">
@@ -145,7 +146,7 @@ function DrawerContent({ className, children, ...props }: DrawerPrimitive.Popup.
         </DrawerPrimitive.Popup>
       </DrawerPrimitive.Viewport>
     </DrawerPortal>
-  )
+  );
 }
 
 function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -158,7 +159,7 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
       )}
       {...props}
     />
-  )
+  );
 }
 
 function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
@@ -168,7 +169,7 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("gap-2 p-4 pt-0 mt-auto flex shrink-0 flex-col", className)}
       {...props}
     />
-  )
+  );
 }
 
 function DrawerTitle({ className, ...props }: DrawerPrimitive.Title.Props) {
@@ -178,7 +179,7 @@ function DrawerTitle({ className, ...props }: DrawerPrimitive.Title.Props) {
       className={cn("text-foreground font-medium", className)}
       {...props}
     />
-  )
+  );
 }
 
 function DrawerDescription({ className, ...props }: DrawerPrimitive.Description.Props) {
@@ -188,7 +189,7 @@ function DrawerDescription({ className, ...props }: DrawerPrimitive.Description.
       className={cn("text-muted-foreground text-sm text-balance", className)}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -203,4 +204,4 @@ export {
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
-}
+};

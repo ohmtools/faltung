@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } f
 
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import type { ConvolutionResult } from '@/lib/convolution'
-import { ease } from '@/lib/motion'
+import { ease } from '@/lib/ohmtools/motion'
 import type { Playhead } from '@/lib/playhead'
 import {
   ANIMATOR_LAYERS,

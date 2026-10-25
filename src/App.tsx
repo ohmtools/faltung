@@ -1,28 +1,32 @@
-import { ImageDown, Link2, SlidersHorizontal } from 'lucide-react'
+import { ImageDown, Info, Link2, Settings2, SlidersHorizontal } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
-import { AppToaster } from '@/components/app-toaster'
 import { Logo } from '@/components/brand'
-import { ExamplesMenu, FormulaBar, FormulaSummary, type ControlsProps } from '@/components/controls'
+import { ExamplesMenu, FormulaBar, FormulaEditor, FormulaSummary, type ControlsProps } from '@/components/controls'
 import { ConvolutionPlot, type ConvolutionPlotHandle } from '@/components/convolution-plot'
 import { GuidePage } from '@/components/guide'
+import { AppShell } from '@/components/ohmtools/app-shell'
+import { Area, type AreaSection } from '@/components/ohmtools/area'
+import { PageEditor } from '@/components/ohmtools/page-editor'
+import { useArea } from '@/components/ohmtools/panel'
+import { languageName } from '@/components/ohmtools/settings'
+import { ViewControls, Views } from '@/components/ohmtools/views'
 import { PropertiesPage } from '@/components/properties'
 import { PwaPrompt } from '@/components/pwa-prompt'
-import { SettingsDialog, SettingsPage } from '@/components/settings-page'
-import { PageTabs } from '@/components/tab-bar'
+import { AboutSettings, GeneralSettings } from '@/components/settings'
 import { Tex } from '@/components/tex'
 import { Transport } from '@/components/transport'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useInstallPrompt } from '@/hooks/use-install-prompt'
-import { useMedia } from '@/hooks/use-media'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { formulaError, localized, m } from '@/i18n'
+import { formulaError, getLocale, localized, m } from '@/i18n'
 import { computeConvolution, type ConvolutionResult } from '@/lib/convolution'
 import { bind, compileFormula, FormulaError, type CompiledFormula } from '@/lib/formula'
-import { COMPACT_QUERY, LG_QUERY } from '@/lib/media'
-import { transition, type Nav } from '@/lib/motion'
+import { GUTTER, LG_QUERY } from '@/lib/layout'
+import { transition } from '@/lib/ohmtools/motion'
+import { useMedia, useStep } from '@/lib/ohmtools/steps'
+import { toast } from '@/lib/ohmtools/toast'
 import { PAGES, type Page } from '@/lib/pages'
 import { GLIDE_MS, Playhead } from '@/lib/playhead'
 import {
@@ -108,12 +112,7 @@ function controlsProblem({ settings, fError, gError, rangeError }: ControlsProps
   return rangeError
 }
 
-function HeaderButton({ label, onClick, children, pressed }: {
-  label: string
-  onClick: () => void
-  children: React.ReactNode
-  pressed?: boolean
-}) {
+function HeaderButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <Tooltip>
       <TooltipTrigger
@@ -121,10 +120,9 @@ function HeaderButton({ label, onClick, children, pressed }: {
           <Button
             variant="ghost"
             size="icon"
-            className="size-10 compact:size-9 aria-pressed:bg-accent"
+            className="size-10 compact:size-9"
             onClick={onClick}
             aria-label={label}
-            aria-pressed={pressed}
           />
         }
       >
@@ -135,10 +133,16 @@ function HeaderButton({ label, onClick, children, pressed }: {
   )
 }
 
+const PAGE_LABEL: Record<Page, () => string> = {
+  animator: () => m.pageAnimator,
+  guide: () => m.pageGuide,
+  properties: () => m.pageProperties,
+}
+
 export default function App() {
   const installPrompt = useInstallPrompt()
   const reduce = useReducedMotion()
-  const compact = useMedia(COMPACT_QUERY)
+  const step = useStep()
   const lg = useMedia(LG_QUERY)
   const plotRef = useRef<ConvolutionPlotHandle>(null)
 
@@ -249,32 +253,21 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  // Seiten: Animator, Anleitung, Eigenschaften; die Einstellungen sind auf dem Telefon eine eigene
-  // Seite, ab `compact:` ein Dialog
+  // Seiten (die Gruppe „View“ des Designs): Animator, Anleitung, Eigenschaften. Die Einstellungen
+  // (`Area`) sind auf dem Telefon und ab `compact:` eine Seite über allem, breit ein Dialog.
   const [page, setPage] = useState<Page>('animator')
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const settingsPage = settingsOpen && !compact
+  const settingsArea = useArea()
+  const settingsPage = settingsArea.open && step !== 'wide'
   const [guidePreset, setGuidePreset] = useState<Preset>(GUIDE_PRESET)
 
-  /** Wechselt die Seite mit einer View Transition: nur die neue Seite bewegt sich. */
-  const navigate = useCallback((nav: Nav, update: () => void) => transition(nav, update), [])
-
+  /** Wechselt die Seite wie die Tabs: die neue kommt von der Seite ihres Tabs. */
   const goPage = useCallback(
     (next: Page) => {
-      if (next === page && !settingsPage) return
-      const nav: Nav = settingsPage ? 'close' : PAGES.indexOf(next) > PAGES.indexOf(page) ? 'forward' : 'back'
-      navigate(nav, () => {
-        setPage(next)
-        if (settingsPage) setSettingsOpen(false)
-      })
+      if (next === page) return
+      transition(PAGES.indexOf(next) > PAGES.indexOf(page) ? 'view-next' : 'view-previous', () => setPage(next))
     },
-    [page, settingsPage, navigate],
+    [page],
   )
-
-  const toggleSettings = useCallback(() => {
-    if (compact) setSettingsOpen((o) => !o)
-    else navigate(settingsOpen ? 'close' : 'forward', () => setSettingsOpen((o) => !o))
-  }, [compact, settingsOpen, navigate])
 
   // Die Animation läuft nur, solange sie zu sehen ist
   const resumeOnReturn = useRef(false)
@@ -398,108 +391,134 @@ export default function App() {
   }
   const problem = controlsProblem({ ...controls, settings: applied })
 
-  const settingsIcon = (
-    <HeaderButton label={m.settings} onClick={toggleSettings}>
-      <SlidersHorizontal />
-    </HeaderButton>
+  // Die Abschnitte der Einstellungen, auf jeder Stufe dieselben: Allgemein zuerst, Über zuletzt
+  const sections = useMemo<AreaSection[]>(
+    () => [
+      {
+        key: 'general',
+        icon: Settings2,
+        label: m.settingsGeneral,
+        value: languageName(getLocale()),
+        content: <GeneralSettings prompt={installPrompt} />,
+      },
+      {
+        key: 'about',
+        icon: Info,
+        label: m.about,
+        value: <span className="font-mono text-xs">v{__APP_VERSION__}</span>,
+        content: <AboutSettings />,
+      },
+    ],
+    [installPrompt],
+  )
+  const views = useMemo(() => PAGES.map((value) => ({ value, label: PAGE_LABEL[value]() })), [])
+
+  const actions = (
+    <>
+      {page === 'animator' && (
+        <>
+          {lg && <ExamplesMenu onPreset={preset} />}
+          <div className="flex items-center gap-2">
+            <HeaderButton label={m.copyLink} onClick={share}>
+              <Link2 />
+            </HeaderButton>
+            <HeaderButton label={m.savePngTip} onClick={savePng}>
+              <ImageDown />
+            </HeaderButton>
+          </div>
+        </>
+      )}
+      {page === 'guide' && step !== 'narrow' && (
+        <ExamplesMenu value={guidePreset} onPreset={setGuidePreset} label={m.example(localized(guidePreset.name))} />
+      )}
+      <HeaderButton label={m.settings} onClick={settingsArea.toggle}>
+        <SlidersHorizontal />
+      </HeaderButton>
+    </>
   )
 
   return (
     <TooltipProvider>
       {/* Jede Stufe ist genau eine Ansicht hoch, die Seite scrollt nie; was nicht passt, scrollt in
-          sich. Platz für die Notch im Querformat. */}
-      <div className="flex h-dvh flex-col overflow-hidden text-sm pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
-        {/* Die eine Überschrift der Seite, auch wenn der Header fehlt (Einstellungen auf dem Telefon) */}
-        <h1 className="sr-only">{m.appTitle}</h1>
-        <header className={cn('shrink-0 border-b pt-[env(safe-area-inset-top)]', settingsPage && 'hidden')}>
-          <div className="flex h-14 items-center justify-between gap-4 pr-2 pl-4 short:h-12 compact:px-6">
-            {
-              <div className="flex min-w-0 items-center gap-6">
-                <div className="flex items-center gap-2.5">
-                  <Logo />
-                  <span className="font-heading text-base font-semibold">{m.appTitle}</span>
-                </div>
-                <PageTabs value={page} onChange={goPage} className="hidden compact:block" />
-              </div>
-            }
-            {(
-              <div className="flex items-center gap-2">
-                {page === 'animator' && (
-                  <>
-                    {lg && <ExamplesMenu onPreset={preset} />}
-                    <div className="flex items-center gap-2">
-                      <HeaderButton label={m.copyLink} onClick={share}>
-                        <Link2 />
-                      </HeaderButton>
-                      <HeaderButton label={m.savePngTip} onClick={savePng}>
-                        <ImageDown />
-                      </HeaderButton>
-                    </div>
-                  </>
-                )}
-                {page === 'guide' && compact && (
-                  <ExamplesMenu onPreset={setGuidePreset} label={m.example(localized(guidePreset.name))} />
-                )}
-                {settingsIcon}
-              </div>
-            )}
+          sich (`AppShell`). */}
+      <AppShell
+        title={m.appTitle}
+        brand={
+          <>
+            <Logo />
+            <span className="font-heading text-base font-semibold">{m.appTitle}</span>
+          </>
+        }
+        actions={actions}
+      >
+        <Views value={page} onValueChange={setPage} items={views} label={m.pagesLabel} />
+
+        <div className={cn('flex min-h-0 flex-1 flex-col', page !== 'animator' && 'hidden')}>
+          <div className={cn('shrink-0 border-b py-2.5 lg:py-4', GUTTER)}>
+            <PageEditor
+              fits={lg}
+              title={m.functionsTitle}
+              editLabel={m.edit}
+              closeLabel={m.close}
+              summary={<FormulaSummary settings={settings} />}
+            >
+              {lg ? (
+                <FormulaBar {...controls} />
+              ) : (
+                <FormulaEditor {...controls} onPreset={preset} activePreset={activePreset} />
+              )}
+            </PageEditor>
           </div>
-        </header>
-
-        <div className="flex min-h-0 flex-1">
-          <div className="page-view flex min-h-0 min-w-0 flex-1 flex-col">
-            {settingsPage && <SettingsPage prompt={installPrompt} onClose={toggleSettings} navigate={navigate} />}
-
-            <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'animator' || settingsPage) && 'hidden')}>
-              <div className="shrink-0 border-b py-2.5 pr-2 pl-4 compact:px-6 lg:py-4">
-                {lg ? (
-                  <FormulaBar {...controls} />
-                ) : (
-                  <FormulaSummary {...controls} onPreset={preset} activePreset={activePreset} />
-                )}
-              </div>
-              <main className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-4 pb-3 compact:px-6 compact:pt-5">
-                <TitleRow
-                  problem={problem}
-                  preset={activePreset}
-                  fTex={controls.fTex}
-                  gTex={controls.gTex}
-                  showTitle={compact}
-                />
-                <ConvolutionPlot
-                  ref={plotRef}
-                  result={result}
-                  playhead={playhead}
-                  scrub
-                  label={m.plotLabel}
-                  className="min-h-40 flex-1"
-                />
-              </main>
-              <Transport result={result} playhead={playhead} className="shrink-0 border-t px-4 py-3 compact:px-6" />
-            </div>
-
-            <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'guide' || settingsPage) && 'hidden')}>
-              <GuidePage
-                preset={guidePreset}
-                onPreset={setGuidePreset}
-                active={page === 'guide' && !settingsPage}
-                onOpenInAnimator={openInAnimator}
-              />
-            </div>
-
-            <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'properties' || settingsPage) && 'hidden')}>
-              <PropertiesPage onShow={openInAnimator} />
-            </div>
+          <div className={cn('flex min-h-0 flex-1 flex-col gap-3 pt-4 pb-3 compact:pt-5', GUTTER)}>
+            <TitleRow
+              problem={problem}
+              preset={activePreset}
+              fTex={controls.fTex}
+              gTex={controls.gTex}
+              showTitle={step !== 'narrow'}
+            />
+            <ConvolutionPlot
+              ref={plotRef}
+              result={result}
+              playhead={playhead}
+              scrub
+              label={m.plotLabel}
+              className="min-h-40 flex-1"
+            />
           </div>
-
+          {/* Auf dem Telefon in der Leiste unten über den Tabs, sonst unter dem Plot */}
+          {step === 'narrow' ? (
+            page === 'animator' && (
+              <ViewControls narrow={<Transport result={result} playhead={playhead} className="-order-1" />} />
+            )
+          ) : (
+            <Transport result={result} playhead={playhead} className={cn('shrink-0 border-t py-3', GUTTER)} />
+          )}
         </div>
 
-        <PageTabs value={page} onChange={goPage} bar className={cn('compact:hidden', settingsPage && 'hidden')} />
-      </div>
+        <div className={cn('flex min-h-0 flex-1 flex-col', page !== 'guide' && 'hidden')}>
+          <GuidePage
+            preset={guidePreset}
+            onPreset={setGuidePreset}
+            active={page === 'guide' && !settingsPage}
+            onOpenInAnimator={openInAnimator}
+          />
+        </div>
 
-      <SettingsDialog open={compact && settingsOpen} onClose={() => setSettingsOpen(false)} prompt={installPrompt} />
+        <div className={cn('flex min-h-0 flex-1 flex-col', page !== 'properties' && 'hidden')}>
+          <PropertiesPage onShow={openInAnimator} />
+        </div>
+
+        <Area
+          open={settingsArea.open}
+          onClose={settingsArea.hide}
+          title={m.settings}
+          sections={sections}
+          closeLabel={m.close}
+          backLabel={m.back}
+        />
+      </AppShell>
       <PwaPrompt />
-      <AppToaster />
     </TooltipProvider>
   )
 }

@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
-import { toast } from 'sonner'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
 import { m } from '@/i18n'
+import { toast } from '@/lib/ohmtools/toast'
 
 /** Meldet Offline-Bereitschaft bzw. eine neue Version (Service Worker) als Toast. */
 export function PwaPrompt() {

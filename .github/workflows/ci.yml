@@ -16,7 +16,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      # Folgt die App dem ohmtools-Design (Theme, shadcn-Stil, keine Großbuchstaben)?
-      - run: npx --yes github:ohmtools/design check src/index.css components.json index.html src/*.tsx src/components/*.tsx src/components/ui/*.tsx
+      # Folgt die App dem ohmtools-Design (Theme, shadcn-Stil, keine Großbuchstaben, die Kopien aus
+      # dem Design-Repo unverändert)?
+      - run: npx --yes github:ohmtools/design check src/index.css src/styles/ohmtools.css components.json index.html src/*.tsx src/components/*.tsx src/components/**/*.tsx src/lib/ohmtools/*.ts
       - run: npm test
       - run: npm run build

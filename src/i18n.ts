@@ -3,7 +3,7 @@ import type { Localized } from '@/lib/presets'
 import { de, en, type Messages } from '@/messages'
 
 /**
- * Deutsch und Englisch, nach der Sprache des Browsers. Die Knöpfe im Footer und auf der Seite
+ * Deutsch und Englisch, nach der Sprache des Browsers. Die Tabs unter „Allgemein“ in den
  * Einstellungen überschreiben sie (gespeichert auf dem Gerät). Eine Seite behält die Sprache, mit
  * der sie startet: jeder Wechsel lädt neu, so muss nichts darauf hören.
  */
@@ -53,11 +53,6 @@ export function followLocaleOfOtherTabs() {
     if (e.key !== null && e.key !== KEY) return
     if (resolveLocale() !== locale) location.reload()
   })
-}
-
-/** Die Sprache in sich selbst benannt („Deutsch“, „English“), so findet jeder seine. */
-export function languageName(l: Locale): string {
-  return new Intl.DisplayNames([l], { type: 'language' }).of(l) ?? l
 }
 
 export function localized(v: Localized): string {

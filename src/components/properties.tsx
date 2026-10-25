@@ -3,7 +3,9 @@ import { ArrowRight } from 'lucide-react'
 import { Tex } from '@/components/tex'
 import { Button } from '@/components/ui/button'
 import { localized, m } from '@/i18n'
+import { GUTTER } from '@/lib/layout'
 import { PRESETS, type Localized, type Preset } from '@/lib/presets'
+import { cn } from '@/lib/utils'
 
 const PROPS: { name: Localized; tex: string; text: Localized; preset?: Preset }[] = [
   {
@@ -65,7 +67,7 @@ const PROPS: { name: Localized; tex: string; text: Localized; preset?: Preset }[
 export function PropertiesPage({ onShow }: { onShow: (p: Preset) => void }) {
   return (
     <div className="relative min-h-0 flex-1 overflow-y-auto">
-      <div className="max-w-280 px-4 pt-4 pb-8 compact:px-6 compact:pt-6">
+      <div className={cn('max-w-280 pt-4 pb-8 compact:pt-6', GUTTER)}>
         <h2 className="font-heading text-base font-semibold">{m.propertiesTitle}</h2>
         <p className="mt-1 mb-4 max-w-180 text-muted-foreground compact:mb-6">
           {m.propertiesLead}

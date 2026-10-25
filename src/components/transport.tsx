@@ -2,14 +2,12 @@ import { Pause, Play, SkipBack, StepBack, StepForward } from 'lucide-react'
 import { useId, useMemo, useSyncExternalStore } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popup } from '@/components/ohmtools/popup'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useMedia } from '@/hooks/use-media'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { formatNumber, formatValue, m } from '@/i18n'
-import { bottomBar } from '@/lib/bottom-bar'
 import { convAt, type ConvolutionResult } from '@/lib/convolution'
-import { COMPACT_QUERY } from '@/lib/media'
+import { useStep } from '@/lib/ohmtools/steps'
 import { GLIDE_MS, type Playhead } from '@/lib/playhead'
 import { cn } from '@/lib/utils'
 
@@ -150,38 +148,36 @@ export function Timeline({ result, playhead, className }: Props) {
   )
 }
 
+/** Die Geschwindigkeit; ihre Liste ist auf dem Telefon ein Drawer von unten. */
 function Speed({ playhead }: { playhead: Playhead }) {
+  const id = useId()
   const speed = useSyncExternalStore(playhead.subscribe, playhead.getSpeed)
   return (
-    <Select
-      value={String(speed)}
-      items={SPEEDS.map((s) => ({ value: String(s), label: `${formatNumber(s)}×` }))}
-      onValueChange={(v) => {
-        if (v !== null) playhead.setSpeed(parseFloat(v))
-      }}
-    >
-      <SelectTrigger className="w-20 font-mono" aria-label={m.speed}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {SPEEDS.map((s) => (
-          <SelectItem key={s} value={String(s)} className="font-mono">
-            {formatNumber(s)}×
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <>
+      <label htmlFor={id} className="sr-only">
+        {m.speed}
+      </label>
+      <Popup
+        kind="select"
+        id={id}
+        title={m.speed}
+        value={String(speed)}
+        items={SPEEDS.map((s) => ({ value: String(s), label: <span className="font-mono">{formatNumber(s)}×</span> }))}
+        onValueChange={(v) => playhead.setSpeed(parseFloat(v))}
+        className="w-20"
+      />
+    </>
   )
 }
 
 /**
- * Abspielen, Schritte, Zeitleiste, Werte und Geschwindigkeit. Auf dem Telefon über der Tab-Leiste,
- * wo der Daumen ist: die Werte, die Zeitleiste und darunter die Knöpfe mit einem breiten
- * Abspielknopf; ab `compact:` alles in einer Zeile.
+ * Abspielen, Schritte, Zeitleiste, Werte und Geschwindigkeit. Auf dem Telefon in der Leiste unten
+ * über den Tabs, wo der Daumen ist (`ViewControls`): die Werte, die Zeitleiste und darunter die
+ * Knöpfe mit einem breiten Abspielknopf; ab `compact:` alles in einer Zeile unter dem Plot.
  */
 export function Transport({ result, playhead, className }: Props) {
   const reduce = useReducedMotion()
-  const compact = useMedia(COMPACT_QUERY)
+  const compact = useStep() !== 'narrow'
   const playing = useSyncExternalStore(playhead.subscribe, playhead.getPlaying)
   const play = (
     <Button
@@ -215,7 +211,7 @@ export function Transport({ result, playhead, className }: Props) {
 
   if (!compact) {
     return (
-      <div ref={bottomBar} className={cn('flex flex-col gap-2.5', className)}>
+      <div className={cn('flex flex-col gap-2.5', className)}>
         <Values result={result} playhead={playhead} className="flex justify-between gap-4" />
         <Timeline result={result} playhead={playhead} />
         <div className="flex items-center">
@@ -229,7 +225,7 @@ export function Transport({ result, playhead, className }: Props) {
     )
   }
   return (
-    <div ref={bottomBar} className={cn('flex items-center gap-4', className)}>
+    <div className={cn('flex items-center gap-4', className)}>
       <div className="flex items-center gap-1">
         {play}
         <div className="flex">

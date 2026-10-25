@@ -1,21 +1,21 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
-import { ExamplesSheet } from '@/components/controls'
+import { ExamplesMenu } from '@/components/controls'
 import { ConvolutionPlot } from '@/components/convolution-plot'
 import { fill } from '@/components/fill'
+import { ViewControls } from '@/components/ohmtools/views'
 import { Tex } from '@/components/tex'
 import { Values } from '@/components/transport'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { useMedia } from '@/hooks/use-media'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { formatValue, localized, m } from '@/i18n'
 import { computeConvolution, type ConvolutionResult } from '@/lib/convolution'
 import { bind, compileFormula } from '@/lib/formula'
-import { bottomBar } from '@/lib/bottom-bar'
-import { WIDE_QUERY } from '@/lib/media'
-import { EASE, easeInOut } from '@/lib/motion'
+import { GUTTER } from '@/lib/layout'
+import { easeInOut, slideIn } from '@/lib/ohmtools/motion'
+import { useStep } from '@/lib/ohmtools/steps'
 import { Playhead } from '@/lib/playhead'
 import { ANIMATOR_LAYERS, type PlotLayers } from '@/lib/plot'
 import type { Localized, Preset } from '@/lib/presets'
@@ -151,8 +151,9 @@ function TSlider({ result, playhead, wide }: { result: ConvolutionResult; playhe
  * Die Seite Anleitung: die vier Schritte einer Faltung an einem Beispiel, jeder mit seinem Bild,
  * das sich beim Wechsel aufbaut (g klappt um, gleitet nach t, die Fläche blendet ein, das Ergebnis
  * läuft bis t). Breit: links die Schritte, rechts Vorschaubilder, Plot, Ergebnis und Regler. Sonst
- * ein Schritt auf einmal (Text und Hinweis) mit Zurück und Weiter unten; auf dem Telefon steht oben
- * das Beispiel (`ExamplesSheet`), ab `compact:` steht es im Header.
+ * ein Schritt auf einmal (Text und Hinweis) mit Zurück und Weiter unten, auf dem Telefon in der
+ * Leiste über den Tabs (`ViewControls`); dort steht oben das Beispiel (`ExamplesMenu`, ab
+ * `compact:` im Header).
  */
 export function GuidePage({
   preset,
@@ -161,13 +162,15 @@ export function GuidePage({
   onOpenInAnimator,
 }: {
   preset: Preset
-  /** Ein anderes Beispiel; auf dem Telefon aus dem Blatt oben in der Anleitung */
+  /** Ein anderes Beispiel; auf dem Telefon aus dem Menü oben in der Anleitung */
   onPreset: (p: Preset) => void
   /** Die Seite ist zu sehen; der Regler misst sich dann neu (versteckt hat er keine Breite) */
   active: boolean
   onOpenInAnimator: (p: Preset) => void
 }) {
-  const wide = useMedia(WIDE_QUERY)
+  // Die Stufe des Designs; `step` ist der Schritt der Anleitung
+  const screen = useStep()
+  const wide = screen === 'wide'
   const reduce = useReducedMotion()
   const result = useMemo(() => computeGuide(preset), [preset])
   const [playhead] = useState(() => new Playhead(0.4))
@@ -175,7 +178,7 @@ export function GuidePage({
   /** Wann der Aufbau des Schritts begann (0: steht schon, −1: beginnt im nächsten Bild), für welches Beispiel */
   const [run, setRun] = useState({ step: 0, preset, start: 0 })
   const [now, setNow] = useState(0)
-  const dir = useRef(1)
+  const dir = useRef<-1 | 1>(1)
   const textRef = useRef<HTMLDivElement>(null)
   const t = useSyncExternalStore(playhead.subscribe, playhead.getT)
 
@@ -208,15 +211,8 @@ export function GuidePage({
 
   // Der Text des neuen Schritts kommt von der Seite, in die es geht
   useLayoutEffect(() => {
-    if (reduce || !textRef.current) return
-    textRef.current.animate(
-      [
-        { opacity: 0, transform: `translateX(${dir.current * 24}px)` },
-        { opacity: 1, transform: 'none' },
-      ],
-      { duration: 560, easing: EASE },
-    )
-  }, [step, reduce])
+    if (textRef.current) slideIn(textRef.current, dir.current)
+  }, [step])
 
   // Jeder Schritt baut sein Bild auf (g klappt um, gleitet nach t, die Fläche blendet ein);
   // Integrieren lässt t vom Anfang bis zur Stelle laufen
@@ -262,9 +258,16 @@ export function GuidePage({
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Seitlich abgeschnitten: der Text eines neuen Schritts gleitet 24 px von der Seite herein */}
-        <div className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-3 compact:px-6">
+        <div className={cn('relative flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto pt-4 pb-3', GUTTER)}>
           {/* Ab `compact:` steht das Beispiel im Header */}
-          <ExamplesSheet value={preset} onPreset={onPreset} className="shrink-0 compact:hidden" />
+          {screen === 'narrow' && (
+            <ExamplesMenu
+              value={preset}
+              onPreset={onPreset}
+              label={m.example(localized(preset.name))}
+              className="shrink-0 self-start"
+            />
+          )}
           <div className="flex shrink-0 flex-col gap-1.5">
             <div className="grid grid-cols-4 gap-1" aria-hidden>
               {STEPS.map((x, i) => (
@@ -290,9 +293,11 @@ export function GuidePage({
           {plot}
           <TSlider key={String(active)} result={result} playhead={playhead} wide={false} />
         </div>
-        <div ref={bottomBar} className="shrink-0 border-t px-4 py-3 short:py-2 compact:px-6">
-          {nav}
-        </div>
+        {screen === 'narrow' ? (
+          active && <ViewControls narrow={<div className="-order-1">{nav}</div>} />
+        ) : (
+          <div className={cn('shrink-0 border-t py-3 short:py-2', GUTTER)}>{nav}</div>
+        )}
       </div>
     )
   }
@@ -353,7 +358,7 @@ export function GuidePage({
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col gap-4 p-6">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 p-6">
         <div className="grid shrink-0 grid-cols-4 gap-3">
           {STEPS.map((x, i) => (
             <button
@@ -388,7 +393,7 @@ export function GuidePage({
           />
         </div>
         <TSlider key={String(active)} result={result} playhead={playhead} wide />
-      </main>
+      </div>
     </div>
   )
 }

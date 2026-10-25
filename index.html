@@ -4,8 +4,12 @@
     <meta charset="UTF-8" />
     <!-- `viewport-fit=cover`: sonst meldet iOS alle Safe-Area-Abstände als 0, und die Tab-Leiste
          läge in der installierten App unter dem Home-Indikator. Die App rückt selbst um
-         `env(safe-area-inset-*)` ein. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+         `env(safe-area-inset-*)` ein. `interactive-widget=resizes-visual`: die Bildschirmtastatur
+         ändert nie die Stufe (DESIGN.md, „App shell“). -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual"
+    />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />

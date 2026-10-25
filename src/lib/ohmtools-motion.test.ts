@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { cubicBezier, ease } from './motion'
+import { cubicBezier, ease } from './ohmtools/motion'
 
 describe('cubicBezier', () => {
   it('beginnt bei 0 und endet bei 1', () => {

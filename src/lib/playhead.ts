@@ -1,4 +1,4 @@
-import { ease } from './motion'
+import { ease } from './ohmtools/motion'
 
 /** Sprünge (zum Anfang, Tippen in die Zeitleiste) gleiten so lange (halbe Geschwindigkeit des Designs) */
 export const GLIDE_MS = 560
