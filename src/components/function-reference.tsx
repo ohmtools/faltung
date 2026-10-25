@@ -90,7 +90,7 @@ export function FunctionReference() {
                 </TableCell>
                 <TableCell className="pr-0 align-top whitespace-normal">
                   <p className="text-muted-foreground">{localized(f.text)}</p>
-                  {tex && <Tex math={tex} className="mt-1 block overflow-x-auto overflow-y-hidden" />}
+                  {tex && <Tex math={tex} className="relative mt-1 block overflow-x-auto overflow-y-hidden" />}
                 </TableCell>
               </TableRow>
             )

@@ -42,7 +42,7 @@ export function SettingsDialog({ open, onClose, prompt }: Props & { open: boolea
       >
         <nav
           aria-label={m.settings}
-          className="flex w-60 shrink-0 flex-col gap-0.5 overflow-y-auto border-r px-3 py-5 short:w-46 short:px-2 short:py-3"
+          className="relative flex w-60 shrink-0 flex-col gap-0.5 overflow-y-auto border-r px-3 py-5 short:w-46 short:px-2 short:py-3"
         >
           <DialogTitle className="mb-3.5 px-2.5 pt-1.5 text-base leading-6 font-semibold short:mb-2">
             {m.settings}
@@ -67,7 +67,7 @@ export function SettingsDialog({ open, onClose, prompt }: Props & { open: boolea
               <X />
             </DialogClose>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col divide-y overflow-y-auto px-6 short:px-5">
+          <div className="relative flex min-h-0 flex-1 flex-col divide-y overflow-y-auto px-6 short:px-5">
             <SectionBody section={section} prompt={prompt} />
           </div>
         </div>
@@ -107,7 +107,7 @@ export function SettingsPage({
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         <PanelHeader title={labelOf(section)} onBack={() => navigate('close', () => setSection(null))} />
-        <div className="flex min-h-0 flex-1 flex-col divide-y overflow-y-auto px-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="relative flex min-h-0 flex-1 flex-col divide-y overflow-y-auto px-4 pb-[env(safe-area-inset-bottom)]">
           <SectionBody section={section} prompt={prompt} />
         </div>
       </div>
@@ -116,7 +116,7 @@ export function SettingsPage({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PanelHeader title={m.settings} onBack={onClose} />
-      <nav aria-label={m.settings} className="min-h-0 flex-1 overflow-y-auto pt-2">
+      <nav aria-label={m.settings} className="relative min-h-0 flex-1 overflow-y-auto pt-2">
         <ul>
           {SECTIONS.map(({ key, icon: Icon, label }) => (
             <li key={key} className="group">

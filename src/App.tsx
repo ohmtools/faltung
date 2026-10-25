@@ -1,6 +1,5 @@
 import { ImageDown, Link2, SlidersHorizontal } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 
 import { AppToaster } from '@/components/app-toaster'
@@ -23,6 +22,7 @@ import { formulaError, localized, m } from '@/i18n'
 import { computeConvolution, type ConvolutionResult } from '@/lib/convolution'
 import { bind, compileFormula, FormulaError, type CompiledFormula } from '@/lib/formula'
 import { COMPACT_QUERY, LG_QUERY } from '@/lib/media'
+import { transition, type Nav } from '@/lib/motion'
 import { PAGES, type Page } from '@/lib/pages'
 import { GLIDE_MS, Playhead } from '@/lib/playhead'
 import {
@@ -107,9 +107,6 @@ function controlsProblem({ settings, fError, gError, rangeError }: ControlsProps
   if (!(parseNumber(settings.T) > 0)) return m.periodPositive
   return rangeError
 }
-
-/** Wie eine Seite hereinkommt (siehe `.page-view` in index.css) */
-type Nav = 'forward' | 'back' | 'close'
 
 function HeaderButton({ label, onClick, children, pressed }: {
   label: string
@@ -260,21 +257,7 @@ export default function App() {
   const [guidePreset, setGuidePreset] = useState<Preset>(GUIDE_PRESET)
 
   /** Wechselt die Seite mit einer View Transition: nur die neue Seite bewegt sich. */
-  const navigate = useCallback(
-    (nav: Nav, update: () => void) => {
-      if (reduce || !document.startViewTransition) {
-        update()
-        return
-      }
-      const root = document.documentElement
-      root.dataset.nav = nav
-      const vt = document.startViewTransition(() => flushSync(update))
-      void vt.finished.finally(() => {
-        if (root.dataset.nav === nav) delete root.dataset.nav
-      })
-    },
-    [reduce],
-  )
+  const navigate = useCallback((nav: Nav, update: () => void) => transition(nav, update), [])
 
   const goPage = useCallback(
     (next: Page) => {
@@ -426,13 +409,15 @@ export default function App() {
       {/* Jede Stufe ist genau eine Ansicht hoch, die Seite scrollt nie; was nicht passt, scrollt in
           sich. Platz für die Notch im Querformat. */}
       <div className="flex h-dvh flex-col overflow-hidden text-sm pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
+        {/* Die eine Überschrift der Seite, auch wenn der Header fehlt (Einstellungen auf dem Telefon) */}
+        <h1 className="sr-only">{m.appTitle}</h1>
         <header className={cn('shrink-0 border-b pt-[env(safe-area-inset-top)]', settingsPage && 'hidden')}>
           <div className="flex h-14 items-center justify-between gap-4 pr-2 pl-4 short:h-12 compact:px-6">
             {
               <div className="flex min-w-0 items-center gap-6">
                 <div className="flex items-center gap-2.5">
                   <Logo />
-                  <h1 className="font-heading text-base font-semibold">{m.appTitle}</h1>
+                  <span className="font-heading text-base font-semibold">{m.appTitle}</span>
                 </div>
                 <PageTabs value={page} onChange={goPage} className="hidden compact:block" />
               </div>
@@ -442,7 +427,7 @@ export default function App() {
                 {page === 'animator' && (
                   <>
                     {lg && <ExamplesMenu onPreset={preset} />}
-                    <div className="flex items-center compact:gap-2">
+                    <div className="flex items-center gap-2">
                       <HeaderButton label={m.copyLink} onClick={share}>
                         <Link2 />
                       </HeaderButton>
@@ -535,7 +520,7 @@ function TitleRow({ problem, preset, fTex, gTex, showTitle }: {
   if (!showTitle) return null
   return (
     <div className="flex shrink-0 items-baseline justify-between gap-4 short:hidden">
-      <h2 className="min-w-0 overflow-x-auto overflow-y-hidden font-heading text-base font-semibold whitespace-nowrap">
+      <h2 className="relative min-w-0 overflow-x-auto overflow-y-hidden font-heading text-base font-semibold whitespace-nowrap">
         {preset ? (
           localized(preset.name)
         ) : fTex && gTex ? (

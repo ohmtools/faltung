@@ -1,5 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { m } from '@/i18n'
+import { bottomBar } from '@/lib/bottom-bar'
 import { PAGES, type Page } from '@/lib/pages'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +39,7 @@ export function PageTabs({
   if (!bar) return <div className={className}>{tabs}</div>
   return (
     <nav
+      ref={bottomBar}
       aria-label={m.pagesLabel}
       className={cn(
         'shrink-0 border-t bg-background px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]',

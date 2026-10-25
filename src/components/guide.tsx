@@ -12,7 +12,9 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { formatValue, localized, m } from '@/i18n'
 import { computeConvolution, type ConvolutionResult } from '@/lib/convolution'
 import { bind, compileFormula } from '@/lib/formula'
+import { bottomBar } from '@/lib/bottom-bar'
 import { WIDE_QUERY } from '@/lib/media'
+import { EASE, easeInOut } from '@/lib/motion'
 import { Playhead } from '@/lib/playhead'
 import { ANIMATOR_LAYERS, type PlotLayers } from '@/lib/plot'
 import type { Localized, Preset } from '@/lib/presets'
@@ -73,10 +75,12 @@ const STEPS: { title: Localized; tex: string; short: string; text: Localized; hi
   },
 ]
 
-/** Wie lange ein Schritt sein Bild aufbaut: Spiegeln, Verschieben, Fläche, Ergebnis */
-const STEP_MS = [1800, 1400, 800, 2400]
-// Umklappen und Gleiten sanft an beiden Enden, damit man der Bewegung folgen kann
-const ease = (x: number) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2)
+/**
+ * Wie lange ein Schritt sein Bild aufbaut: Spiegeln, Verschieben, Fläche, Ergebnis. Erklärende
+ * Animationen dauern 1 bis 2,5 s (DESIGN.md, „Motion“), sanft an beiden Enden (`easeInOut`), damit
+ * man der Bewegung folgen kann.
+ */
+const STEP_MS = [1800, 1400, 1200, 2400]
 
 /** Was der Plot im Schritt `step` zeigt; `k` von 0 bis 1 baut den Schritt auf. */
 function stepLayers(step: number, k: number, t: number, ticks = true): PlotLayers {
@@ -195,7 +199,7 @@ export function GuidePage({
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
   }, [run])
-  const k = run.start < 0 ? 0 : run.start ? ease(Math.min(1, Math.max(0, (now - run.start) / STEP_MS[run.step]))) : 1
+  const k = run.start < 0 ? 0 : run.start ? easeInOut(Math.min(1, Math.max(0, (now - run.start) / STEP_MS[run.step]))) : 1
 
   // Der Text des neuen Schritts kommt von der Seite, in die es geht
   useLayoutEffect(() => {
@@ -205,7 +209,7 @@ export function GuidePage({
         { opacity: 0, transform: `translateX(${dir.current * 24}px)` },
         { opacity: 1, transform: 'none' },
       ],
-      { duration: 560, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+      { duration: 560, easing: EASE },
     )
   }, [step, reduce])
 
@@ -219,7 +223,7 @@ export function GuidePage({
     if (next === 3 && !reduce) {
       const target = playhead.t
       playhead.setT(result.xmin)
-      playhead.glideTo(target, STEP_MS[3])
+      playhead.glideTo(target, STEP_MS[3], easeInOut)
     }
   }
   const layers = useMemo(() => stepLayers(step, k, t), [step, k, t])
@@ -229,11 +233,11 @@ export function GuidePage({
 
   const nav = (
     <div className="flex gap-2">
-      <Button variant="outline" className="h-11 flex-1 short:h-9 wide:h-9" disabled={step === 0} onClick={() => goTo(step - 1)}>
+      <Button variant="outline" className="h-10 flex-1 compact:h-9" disabled={step === 0} onClick={() => goTo(step - 1)}>
         <ChevronLeft data-icon="inline-start" />
         {m.previous}
       </Button>
-      <Button className="h-11 flex-1 short:h-9 wide:h-9" onClick={() => (last ? onOpenInAnimator(preset) : goTo(step + 1))}>
+      <Button className="h-10 flex-1 compact:h-9" onClick={() => (last ? onOpenInAnimator(preset) : goTo(step + 1))}>
         {last ? m.toAnimator : m.next}
         <ChevronRight data-icon="inline-end" />
       </Button>
@@ -252,13 +256,17 @@ export function GuidePage({
   if (!wide) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-4 pb-3 compact:px-6">
+        {/* Seitlich abgeschnitten: der Text eines neuen Schritts gleitet 24 px von der Seite herein */}
+        <div className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-3 compact:px-6">
           <div className="flex shrink-0 flex-col gap-1.5">
             <div className="grid grid-cols-4 gap-1" aria-hidden>
               {STEPS.map((x, i) => (
                 <span
                   key={x.tex}
-                  className={cn('h-1 rounded-full bg-muted transition-colors duration-560', i <= step && 'bg-foreground')}
+                  className={cn(
+                    'h-1 rounded-full bg-muted transition-colors duration-560 ease-[cubic-bezier(0.2,0,0,1)]',
+                    i <= step && 'bg-foreground',
+                  )}
                 />
               ))}
             </div>
@@ -266,13 +274,15 @@ export function GuidePage({
           </div>
           <div ref={textRef} className="flex shrink-0 flex-col gap-1">
             <h2 className="font-heading text-base font-semibold">{localized(s.title)}</h2>
-            <Tex math={s.tex} className="overflow-x-auto overflow-y-hidden" />
+            <Tex math={s.tex} className="relative overflow-x-auto overflow-y-hidden" />
             <p className="mt-1 text-muted-foreground">{localized(s.text)}</p>
           </div>
           {plot}
           <TSlider key={String(active)} result={result} playhead={playhead} wide={false} />
         </div>
-        <div className="shrink-0 border-t px-4 py-3 short:py-2 compact:px-6">{nav}</div>
+        <div ref={bottomBar} className="shrink-0 border-t px-4 py-3 short:py-2 compact:px-6">
+          {nav}
+        </div>
       </div>
     )
   }
@@ -286,7 +296,7 @@ export function GuidePage({
             {fill(m.guideTitle, { fg: <Tex math="f*g" /> })}
           </h2>
         </div>
-        <ol className="min-h-0 flex-1 divide-y overflow-y-auto px-6">
+        <ol className="relative min-h-0 flex-1 divide-y overflow-x-hidden overflow-y-auto px-6">
           {STEPS.map((x, i) => {
             const current = i === step
             return (
@@ -298,7 +308,7 @@ export function GuidePage({
                 >
                   <span
                     className={cn(
-                      'flex size-6 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-semibold transition-colors duration-560',
+                      'flex size-6 shrink-0 items-center justify-center rounded-sm font-mono text-xs font-semibold transition-colors duration-560 ease-[cubic-bezier(0.2,0,0,1)]',
                       current
                         ? 'bg-primary text-primary-foreground'
                         : i < step
@@ -312,7 +322,7 @@ export function GuidePage({
                     <span className={cn('font-medium', i > step && 'text-muted-foreground')}>{localized(x.title)}</span>
                     {current ? (
                       <span ref={textRef} className="flex flex-col gap-1.5">
-                        <Tex math={x.tex} className="overflow-x-auto overflow-y-hidden" />
+                        <Tex math={x.tex} className="relative overflow-x-auto overflow-y-hidden" />
                         <span className="text-muted-foreground">{localized(x.text)}</span>
                         <span className="text-muted-foreground">{localized(x.hint)}</span>
                       </span>
@@ -343,7 +353,7 @@ export function GuidePage({
               aria-current={i === step ? 'step' : undefined}
               onClick={() => goTo(i)}
               className={cn(
-                'flex flex-col gap-1.5 rounded-lg border p-2 text-left text-xs transition-[border-color,translate] duration-400 outline-none hover:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px',
+                'flex flex-col gap-1.5 rounded-lg border p-2 text-left text-xs transition-[border-color,translate] duration-400 ease-[cubic-bezier(0.2,0,0,1)] outline-none hover:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px',
                 i === step && 'border-foreground font-medium hover:border-foreground',
               )}
             >

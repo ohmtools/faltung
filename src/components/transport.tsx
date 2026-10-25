@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useMedia } from '@/hooks/use-media'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { formatNumber, formatValue, m } from '@/i18n'
+import { bottomBar } from '@/lib/bottom-bar'
 import { convAt, type ConvolutionResult } from '@/lib/convolution'
 import { COMPACT_QUERY } from '@/lib/media'
 import { GLIDE_MS, type Playhead } from '@/lib/playhead'
@@ -214,7 +215,7 @@ export function Transport({ result, playhead, className }: Props) {
 
   if (!compact) {
     return (
-      <div className={cn('flex flex-col gap-2.5', className)}>
+      <div ref={bottomBar} className={cn('flex flex-col gap-2.5', className)}>
         <Values result={result} playhead={playhead} className="flex justify-between gap-4" />
         <Timeline result={result} playhead={playhead} />
         <div className="flex items-center">
@@ -228,7 +229,7 @@ export function Transport({ result, playhead, className }: Props) {
     )
   }
   return (
-    <div className={cn('flex items-center gap-4', className)}>
+    <div ref={bottomBar} className={cn('flex items-center gap-4', className)}>
       <div className="flex items-center gap-1">
         {play}
         <div className="flex">

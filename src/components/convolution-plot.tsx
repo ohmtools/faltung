@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } f
 
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import type { ConvolutionResult } from '@/lib/convolution'
+import { ease } from '@/lib/motion'
 import type { Playhead } from '@/lib/playhead'
 import {
   ANIMATOR_LAYERS,
@@ -31,7 +32,6 @@ export type ConvolutionPlotHandle = { toBlob: () => Promise<Blob | null> }
 
 /** Wie lange der y-Bereich zu einem neuen Ergebnis gleitet (halbe Geschwindigkeit des Designs) */
 const Y_MS = 560
-const ease = (x: number) => 1 - (1 - x) ** 3
 
 export const ConvolutionPlot = forwardRef<ConvolutionPlotHandle, Props>(function ConvolutionPlot(
   { result, playhead, layers = ANIMATOR_LAYERS, scrub = false, label, className },

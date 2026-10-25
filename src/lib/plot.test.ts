@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toCanvasColor } from './plot'
+import { fmt, fmtT, toCanvasColor } from './plot'
 
 const rgba = (s: string) => s.match(/[\d.]+/g)!.map(Number)
 
@@ -28,5 +28,22 @@ describe('toCanvasColor', () => {
   it('lässt andere Farben unverändert', () => {
     expect(toCanvasColor('#ff0000')).toBe('#ff0000')
     expect(toCanvasColor('rgb(1, 2, 3)')).toBe('rgb(1, 2, 3)')
+  })
+})
+
+describe('Zahlen an den Achsen', () => {
+  it('schreiben das Dezimalzeichen der Sprache und ein echtes Minus', () => {
+    expect(fmt(0.8, 0.2)).toBe('0.8')
+    expect(fmt(0.8, 0.2, ',')).toBe('0,8')
+    expect(fmt(-0.25, 0.05, ',')).toBe('−0,25')
+    expect(fmt(2, 1, ',')).toBe('2')
+  })
+
+  it('schreiben Vielfache von T als Bruch, sonst mit dem Dezimalzeichen', () => {
+    expect(fmtT(0)).toBe('0')
+    expect(fmtT(1, ',')).toBe('T')
+    expect(fmtT(-1.5, ',')).toBe('−3T/2')
+    expect(fmtT(0.2, ',')).toBe('0,2T')
+    expect(fmtT(0.2)).toBe('0.2T')
   })
 })

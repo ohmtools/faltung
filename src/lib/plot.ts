@@ -12,6 +12,8 @@ export type PlotColors = {
   rest: string
   red: string
   mono: string
+  /** Dezimalzeichen der Zahlen an den Achsen, wie bei den Werten der Seite („0,8“ auf Deutsch) */
+  decimal: string
 }
 
 /**
@@ -45,7 +47,8 @@ export function toCanvasColor(css: string, alpha?: number): string {
 /**
  * Die Farben des Plots aus den Tokens des ohmtools-Designs: die Kurven sind Datenreihen in den
  * Datenfarben (f blau, g orange, die Produktfläche violett wie im Logo), das Ergebnis in der
- * Textfarbe, der Abspielkopf im roten Akzent. Raster und Achsen grau, die Zahlen in mono.
+ * Textfarbe, der Abspielkopf im roten Akzent. Raster und Achsen grau, die Zahlen in mono, mit dem
+ * Dezimalzeichen der Sprache der Seite (`lang` auf <html>).
  */
 export function readPlotColors(el: Element = document.documentElement): PlotColors {
   const cs = getComputedStyle(el)
@@ -55,6 +58,8 @@ export function readPlotColors(el: Element = document.documentElement): PlotColo
   document.body.append(probe)
   const mono = getComputedStyle(probe).fontFamily || 'monospace'
   probe.remove()
+  const lang = document.documentElement.lang || undefined
+  const decimal = new Intl.NumberFormat(lang).formatToParts(0.5).find((p) => p.type === 'decimal')?.value ?? '.'
   return {
     grid: v('--grid'),
     axis: v('--ring'),
@@ -67,6 +72,7 @@ export function readPlotColors(el: Element = document.documentElement): PlotColo
     rest: v('--ring'),
     red: v('--accent-red'),
     mono,
+    decimal,
   }
 }
 
@@ -77,13 +83,13 @@ export function niceStep(range: number, target: number): number {
   return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * p
 }
 
-export function fmt(v: number, step: number): string {
+export function fmt(v: number, step: number, decimal = '.'): string {
   const d = Math.max(0, -Math.floor(Math.log10(step) + 1e-9))
-  return (Math.abs(v) < step / 1e6 ? 0 : v).toFixed(d).replace('-', '−')
+  return (Math.abs(v) < step / 1e6 ? 0 : v).toFixed(d).replace('-', '−').replace('.', decimal)
 }
 
-/** v in Vielfachen von T → "−T", "T/2", "3T/2", "0.2T" */
-export function fmtT(v: number): string {
+/** v in Vielfachen von T → "−T", "T/2", "3T/2", "0.2T" (mit `decimal` als Dezimalzeichen) */
+export function fmtT(v: number, decimal = '.'): string {
   if (Math.abs(v) < 1e-9) return '0'
   const sign = v < 0 ? '−' : ''
   const a = Math.abs(v)
@@ -91,7 +97,7 @@ export function fmtT(v: number): string {
     const n = Math.round(a * d)
     if (Math.abs(n / d - a) < 1e-6) return sign + (n === 1 ? '' : n) + 'T' + (d === 1 ? '' : '/' + d)
   }
-  return sign + +a.toFixed(3) + 'T'
+  return sign + String(+a.toFixed(3)).replace('.', decimal) + 'T'
 }
 
 /**
@@ -199,7 +205,7 @@ export function drawPlot(
     ctx.stroke()
     if (!layers.ticks) continue
     // Die äußeren Zahlen bündig zum Rand, damit sie nicht abgeschnitten werden
-    const label = fmtT(v)
+    const label = fmtT(v, C.decimal)
     const w = ctx.measureText(label).width
     ctx.textAlign = 'left'
     ctx.fillText(label, Math.min(W - w, Math.max(0, px - w / 2)), T + ph + 6)
@@ -215,11 +221,11 @@ export function drawPlot(
     const yl = Math.min(T + ph - TICK_FONT / 2, Math.max(TICK_FONT / 2, py))
     if (!layers.convOnly || !r.convInT) {
       ctx.textAlign = 'right'
-      ctx.fillText(fmt(v, ys), L - 8, yl)
+      ctx.fillText(fmt(v, ys, C.decimal), L - 8, yl)
     }
     if (r.convInT && (layers.conv || layers.convOnly)) {
       ctx.textAlign = 'left'
-      ctx.fillText(fmtT(v), L + pw + 8, yl)
+      ctx.fillText(fmtT(v, C.decimal), L + pw + 8, yl)
     }
   }
   ctx.strokeStyle = C.axis

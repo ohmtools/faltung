@@ -46,7 +46,7 @@ export function Tex({ math, display = false, className }: TexProps) {
   // außerhalb der Tailwind-Layer und gewinnt sonst, deshalb `!`.
   const cls = cn(
     display &&
-      'block overflow-x-auto overflow-y-hidden [&_.katex-display]:my-2! [&_.katex-display>.katex]:text-left!',
+      'relative block overflow-x-auto overflow-y-hidden [&_.katex-display]:my-2! [&_.katex-display>.katex]:text-left!',
     className,
   )
   // Bis KaTeX da ist leer; schlägt das Laden fehl, die Formel als Quelltext

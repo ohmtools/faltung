@@ -64,7 +64,7 @@ const PROPS: { name: Localized; tex: string; text: Localized; preset?: Preset }[
 /** Die Seite Eigenschaften: eine Leseseite mit den wichtigsten Regeln, breit in zwei Spalten. */
 export function PropertiesPage({ onShow }: { onShow: (p: Preset) => void }) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className="relative min-h-0 flex-1 overflow-y-auto">
       <div className="max-w-280 px-4 pt-4 pb-8 compact:px-6 compact:pt-6">
         <h2 className="font-heading text-base font-semibold">{m.propertiesTitle}</h2>
         <p className="mt-1 mb-4 max-w-180 text-muted-foreground compact:mb-6">
@@ -72,9 +72,9 @@ export function PropertiesPage({ onShow }: { onShow: (p: Preset) => void }) {
         </p>
         <div className="grid grid-cols-1 gap-x-12 wide:grid-cols-2">
           {PROPS.map((p) => (
-            <section key={p.tex} className="flex min-w-0 flex-col gap-1 border-t py-4">
+            <section key={p.tex} className="flex min-w-0 flex-col gap-1 border-t py-4 compact:py-6">
               <h3 className="font-medium">{localized(p.name)}</h3>
-              <Tex math={p.tex} className="overflow-x-auto overflow-y-hidden py-0.5" />
+              <Tex math={p.tex} className="relative overflow-x-auto overflow-y-hidden py-0.5" />
               <p className="text-muted-foreground">{localized(p.text)}</p>
               {p.preset && (
                 <Button variant="link" className="h-auto self-start p-0" onClick={() => onShow(p.preset!)}>

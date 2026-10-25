@@ -136,7 +136,10 @@ export function FormulaBar(props: ControlsProps) {
           </TooltipTrigger>
           <TooltipContent>{m.referenceTitle}</TooltipContent>
         </Tooltip>
-        <PopoverContent align="end" className="max-h-[min(36rem,var(--available-height))] w-[28rem] overflow-y-auto">
+        <PopoverContent
+          align="end"
+          className="relative max-h-[min(36rem,var(--available-height))] w-[28rem] overflow-y-auto"
+        >
           <FunctionReference />
         </PopoverContent>
       </Popover>
@@ -202,11 +205,11 @@ export function FormulaSummary(props: ControlsProps & { onPreset: (p: Preset) =>
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-0.5 font-mono text-[13px]">
+        <div className="flex min-w-0 flex-col gap-0.5 font-mono text-xs">
           {(['f', 'g'] as const).map((name) => (
             <span key={name} className="flex min-w-0 items-center gap-2">
               <Swatch series={name} />
-              <span className="min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
+              <span className="relative min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
                 <i className="font-math text-sm">{name}</i> = {settings[name]}
               </span>
             </span>
@@ -223,7 +226,8 @@ export function FormulaSummary(props: ControlsProps & { onPreset: (p: Preset) =>
           side="bottom"
           closeLabel={m.close}
           initialFocus={titleRef}
-          className="mx-auto max-h-[90dvh] max-w-2xl gap-0 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+          // Schmaler als der Bildschirm (ab 42rem) hat das Blatt auch links und rechts eine freie Kante
+          className="mx-auto max-h-[90dvh] max-w-2xl gap-0 overflow-y-auto pb-[env(safe-area-inset-bottom)] min-[42rem]:border-x"
         >
           <SheetHeader className="pb-2">
             <SheetTitle ref={titleRef} tabIndex={-1} className="text-base font-semibold outline-none">
@@ -244,7 +248,7 @@ export function FormulaSummary(props: ControlsProps & { onPreset: (p: Preset) =>
             <div
               role="group"
               aria-label={m.insert}
-              className="-mx-4 -mt-2 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]"
+              className="relative -mx-4 -mt-2 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]"
             >
               {BLOCKS.map((b) => (
                 <Button
@@ -301,7 +305,7 @@ export function FormulaSummary(props: ControlsProps & { onPreset: (p: Preset) =>
 
           <div className="flex flex-col gap-2 pt-4">
             <h3 className="mx-4 text-sm font-medium">{m.examples}</h3>
-            <div className="flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]">
+            <div className="relative flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]">
               {PRESETS.map((p) => (
                 <Button
                   key={p.name.de}
@@ -326,10 +330,16 @@ export function FormulaSummary(props: ControlsProps & { onPreset: (p: Preset) =>
             >
               <CircleHelp data-icon="inline-start" />
               {m.referenceTitle}
-              <ChevronDown data-icon="inline-end" className={cn('transition-transform duration-400', reference && 'rotate-180')} />
+              <ChevronDown
+                data-icon="inline-end"
+                className={cn(
+                  'transition-transform duration-400 ease-[cubic-bezier(0.2,0,0,1)]',
+                  reference && 'rotate-180',
+                )}
+              />
             </Button>
             {reference && (
-              <div className="animate-in pt-2 duration-560 fade-in-0 slide-in-from-top-2">
+              <div className="animate-in pt-2 duration-560 ease-[cubic-bezier(0.2,0,0,1)] fade-in-0 slide-in-from-top-2">
                 <FunctionReference />
               </div>
             )}

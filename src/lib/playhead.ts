@@ -1,3 +1,5 @@
+import { ease } from './motion'
+
 /** Sprünge (zum Anfang, Tippen in die Zeitleiste) gleiten so lange (halbe Geschwindigkeit des Designs) */
 export const GLIDE_MS = 560
 
@@ -41,10 +43,11 @@ export class Playhead {
   }
 
   /**
-   * Pausiert und gleitet in `ms` nach t (schnell los, sanft am Ziel), statt zu springen; 0 springt.
-   * Jedes andere Setzen von t bricht das Gleiten ab.
+   * Pausiert und gleitet in `ms` nach t, statt zu springen; 0 springt. `curve` ist die Kurve des
+   * Designs (schnell los, sanft am Ziel), außer eine Erklärung braucht eine andere. Jedes andere
+   * Setzen von t bricht das Gleiten ab.
    */
-  glideTo(t: number, ms: number) {
+  glideTo(t: number, ms: number, curve: (x: number) => number = ease) {
     this.setPlaying(false)
     this.setT(this.t)
     if (ms <= 0) return this.put(t)
@@ -52,7 +55,7 @@ export class Playhead {
     const start = performance.now()
     const frame = (now: number) => {
       const k = Math.min(1, (now - start) / ms)
-      this.put(from + (t - from) * (1 - (1 - k) ** 3))
+      this.put(from + (t - from) * curve(k))
       if (k < 1) this.glide = requestAnimationFrame(frame)
     }
     this.glide = requestAnimationFrame(frame)
