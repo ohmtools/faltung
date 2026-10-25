@@ -1,4 +1,4 @@
-# Faltungs-Animator
+# Faltung
 
 > **Hinweis:** Dieses Projekt wurde größtenteils mit KI generiert: Code, Konfiguration und
 > Dokumentation sind mit [Claude Code](https://claude.com/claude-code) entstanden.
@@ -9,9 +9,11 @@ $$(f * g)(t) = \int_{-\infty}^{\infty} f(\tau)\, g(t-\tau)\, \mathrm d\tau$$
 
 Freie Formeleingabe (`rect(t/T)`, `u(t)*exp(-2t/T)`, `delta(t-T)`, …), Dirac-Impulse werden
 exakt verrechnet. Läuft komplett im Browser, als PWA installierbar und offline nutzbar, auf
-Deutsch und Englisch (nach der Sprache des Browsers).
+Deutsch und Englisch (nach der Sprache des Browsers). Drei Seiten: der Animator, eine
+Anleitung, die die vier Schritte einer Faltung an einem Beispiel zeigt, und die wichtigsten
+Eigenschaften der Faltung.
 
-Vite + React 19 + TypeScript, shadcn/ui (`base-sera`, Base UI), Tailwind v4, mathjs (Parser),
+Vite + React 19 + TypeScript, shadcn/ui (`base-vega`, Base UI), Tailwind v4, mathjs (Parser),
 KaTeX. Das Erscheinungsbild folgt dem [ohmtools-Design](https://github.com/ohmtools/design)
 (`src/index.css` und `components.json` kommen von dort, die CI prüft sie). Texte der Oberfläche:
 `src/messages.ts`.
@@ -30,7 +32,7 @@ npm run release   # aktuelle Version taggen und den Tag pushen
 ```
 
 `npm install` richtet einen Git-Hook ein, der bei jedem Commit die Patch-Version erhöht
-(`scripts/bump-version.mjs`); sie steht im Footer. Überspringen: `SKIP_VERSION_BUMP=1` oder
+(`scripts/bump-version.mjs`); sie steht in den Einstellungen unter „Über“. Überspringen: `SKIP_VERSION_BUMP=1` oder
 `--no-verify`. Eine von Hand geänderte Version bleibt.
 
 `scripts/og/social-preview.png` ist das Vorschaubild für GitHub (1280×640, nach dem

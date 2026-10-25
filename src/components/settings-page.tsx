@@ -3,77 +3,68 @@ import { Download } from 'lucide-react'
 import { Brand } from '@/components/brand'
 import { GitHubLink } from '@/components/github-link'
 import { IosSteps } from '@/components/install'
-import { Section } from '@/components/section'
 import { Button } from '@/components/ui/button'
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { InstallPrompt } from '@/hooks/use-install-prompt'
-import { getLocale, languageName, locales, m, setLocale } from '@/i18n'
+import { getLocale, languageName, locales, m, setLocale, type Locale } from '@/i18n'
+import { cn } from '@/lib/utils'
+
+function Part({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={cn('flex flex-col gap-3 px-4 py-4 compact:px-6', className)}>
+      <h3 className="font-heading text-sm font-semibold">{title}</h3>
+      {children}
+    </section>
+  )
+}
 
 /**
- * Der Tab Einstellungen auf dem Telefon: was der Desktop im Footer hat, als Seite. Zuerst die
- * Sprache, dann die Installation (nur wenn möglich), zuletzt Name, Version und der Link zu GitHub.
+ * Die Einstellungen: auf dem Telefon eine eigene Seite, ab `compact:` ein Blatt von rechts, auf
+ * breiten Bildschirmen eine Seitenleiste. Zuerst die Sprache, dann die Installation (nur wenn
+ * möglich), zuletzt Name, Version und der Link zu GitHub.
  */
-export function SettingsPage({ prompt }: { prompt: InstallPrompt }) {
+export function SettingsPanel({ prompt }: { prompt: InstallPrompt }) {
   return (
     <div className="flex flex-col divide-y">
-      <Section>
-        <CardHeader>
-          <CardTitle>{m.language}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ToggleGroup
-            variant="outline"
-            spacing={0}
-            className="w-full"
-            aria-label={m.language}
-            value={[getLocale()]}
-            onValueChange={([value]) => {
-              const locale = locales.find((l) => l === value)
-              if (locale && locale !== getLocale()) setLocale(locale)
-            }}
-          >
+      <Part title={m.language}>
+        <Tabs
+          value={getLocale()}
+          onValueChange={(value: Locale) => {
+            if (value !== getLocale()) setLocale(value)
+          }}
+        >
+          <TabsList aria-label={m.language} className="w-full">
             {locales.map((locale) => (
-              <ToggleGroupItem key={locale} value={locale} lang={locale} className="flex-1">
+              <TabsTrigger key={locale} value={locale} lang={locale}>
                 {languageName(locale)}
-              </ToggleGroupItem>
+              </TabsTrigger>
             ))}
-          </ToggleGroup>
-        </CardContent>
-      </Section>
+          </TabsList>
+        </Tabs>
+      </Part>
 
       {(prompt.canInstall || prompt.iosHint) && (
-        <Section>
-          <CardHeader>
-            <CardTitle>{m.installTitle}</CardTitle>
-            <CardDescription>{m.installDescription}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {prompt.canInstall ? (
-              <Button variant="outline" className="w-full justify-start" onClick={prompt.install}>
-                <Download data-icon="inline-start" />
-                {m.installApp}
-              </Button>
-            ) : (
-              <IosSteps />
-            )}
-          </CardContent>
-        </Section>
+        <Part title={m.installTitle}>
+          <p className="text-muted-foreground">{m.installDescription}</p>
+          {prompt.canInstall ? (
+            <Button variant="outline" className="justify-start" onClick={prompt.install}>
+              <Download data-icon="inline-start" />
+              {m.installApp}
+            </Button>
+          ) : (
+            <IosSteps />
+          )}
+        </Part>
       )}
 
-      <Section>
-        <CardHeader>
-          <CardTitle>{m.about}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <Brand />
-            <GitHubLink />
-          </div>
-          <p className="text-muted-foreground">{m.footerNote}</p>
-          <p className="text-muted-foreground">{m.credits}</p>
-        </CardContent>
-      </Section>
+      <Part title={m.about}>
+        <div className="flex items-center justify-between gap-2">
+          <Brand name={m.appTitle} />
+          <GitHubLink />
+        </div>
+        <p className="text-muted-foreground">{m.footerNote}</p>
+        <p className="text-muted-foreground">{m.credits}</p>
+      </Part>
     </div>
   )
 }

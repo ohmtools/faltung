@@ -29,7 +29,7 @@ export default defineConfig({
       // Die Symbole des Manifests liest nur die Installation (online), nie die App selbst
       includeManifestIcons: false,
       manifest: {
-        name: 'Faltungs-Animator',
+        name: 'Faltung',
         short_name: 'Faltung',
         description: 'Interaktive Animation der Faltung zweier Funktionen – (f ∗ g)(t) = ∫ f(τ) · g(t − τ) dτ',
         lang: 'de',
@@ -37,9 +37,9 @@ export default defineConfig({
         scope: '.',
         display: 'standalone',
         orientation: 'any',
-        // Startbildschirm: das helle --primary des ohmtools-Designs
-        background_color: '#c10007',
-        theme_color: '#ffffff',
+        // Startbildschirm: der dunkle Grund des ohmtools-Designs
+        background_color: '#000000',
+        theme_color: '#000000',
         categories: ['education', 'utilities'],
         // Das SVG für Browser, die eines nehmen; PNGs für Android-Browser ohne SVG; ein randloses
         // maskable, sonst setzt Android das Symbol auf eine weiße Platte. iOS liest nichts davon
@@ -55,12 +55,13 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // KaTeX bringt ~20 Schriftschnitte mit, die meisten erscheinen nie: nicht alle
         // vorab laden (~250 KB), sondern jeden beim ersten Gebrauch cachen
-        // Inter bringt weitere Schriftsysteme mit; Deutsch und Englisch treffen ihren
+        // Geist bringt weitere Schriftsysteme mit; Deutsch und Englisch treffen ihren
         // `unicode-range` nie, der Browser fragt sie also auch nie an. Die App-Symbole liest nur
         // die Installation.
         globIgnores: [
           '**/KaTeX_*',
-          '**/inter-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2',
+          '**/geist-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2',
+          '**/geist-mono-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2',
           'apple-touch-icon.png',
           'icon-*.png',
         ],

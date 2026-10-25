@@ -1,49 +1,50 @@
-import { BookOpen, ChartSpline, Settings, SquareFunction } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { m } from '@/i18n'
+import { PAGES, type Page } from '@/lib/pages'
 import { cn } from '@/lib/utils'
 
-export type Tab = 'animation' | 'functions' | 'explanation' | 'settings'
-
-// Ein Platz der Leiste: Symbol über der Beschriftung
-const TAB_ITEM =
-  'relative h-14 min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground aria-[current=page]:text-foreground'
+const LABEL: Record<Page, () => string> = {
+  animator: () => m.pageAnimator,
+  guide: () => m.pageGuide,
+  properties: () => m.pageProperties,
+}
 
 /**
- * Unterhalb der `desktop`-Variante zeigt die App eine Seite auf einmal: die Animation mit ihrer
- * Bedienleiste, die Funktionen, die Erklärung oder die Einstellungen (was der Desktop im Footer
- * hat). Diese Leiste unten am Bildschirm wechselt zwischen ihnen; der Desktop zeigt alles.
+ * Die drei Seiten als Tabs mit gleitendem Indikator: ab `compact:` im Header neben dem Namen, auf
+ * dem Telefon in einer Leiste unten, wo der Daumen ist (`bar`).
  */
-export function TabBar({ value, onChange }: { value: Tab; onChange: (tab: Tab) => void }) {
-  const tabs: { tab: Tab; label: string; Icon: typeof Settings }[] = [
-    { tab: 'animation', label: m.tabAnimation, Icon: ChartSpline },
-    { tab: 'functions', label: m.tabFunctions, Icon: SquareFunction },
-    { tab: 'explanation', label: m.tabExplanation, Icon: BookOpen },
-    { tab: 'settings', label: m.tabSettings, Icon: Settings },
-  ]
+export function PageTabs({
+  value,
+  onChange,
+  bar = false,
+  className,
+}: {
+  value: Page | null
+  onChange: (page: Page) => void
+  bar?: boolean
+  className?: string
+}) {
+  const tabs = (
+    <Tabs value={value} onValueChange={(v: Page) => onChange(v)} className={cn(bar && 'w-full')}>
+      <TabsList aria-label={m.pagesLabel} className={cn(bar && 'h-10! w-full')}>
+        {PAGES.map((page) => (
+          <TabsTrigger key={page} value={page} className={cn(!bar && 'px-3')}>
+            {LABEL[page]()}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  )
+  if (!bar) return <div className={className}>{tabs}</div>
   return (
     <nav
-      aria-label={m.tabLabel}
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t bg-background pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] desktop:hidden"
+      aria-label={m.pagesLabel}
+      className={cn(
+        'shrink-0 border-t bg-background px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]',
+        className,
+      )}
     >
-      {tabs.map(({ tab, label, Icon }) => (
-        <Button
-          key={tab}
-          variant="ghost"
-          aria-current={tab === value ? 'page' : undefined}
-          className={TAB_ITEM}
-          onClick={() => onChange(tab)}
-        >
-          {/* Die Linie des aktiven Tabs liegt auf der Trennlinie der Leiste */}
-          <span
-            aria-hidden
-            className={cn('absolute inset-x-0 -top-px h-0.5 bg-primary', tab !== value && 'hidden')}
-          />
-          <Icon className="size-5" />
-          {label}
-        </Button>
-      ))}
+      {tabs}
     </nav>
   )
 }

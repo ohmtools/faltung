@@ -1,20 +1,17 @@
 import { convAt, type ConvolutionResult } from './convolution'
 
-export const PAD_L = 40
-export const PAD_R = 46
-const PAD_T = 10
-const PAD_B = 30
-
 export type PlotColors = {
   grid: string
   axis: string
-  muted: string
+  tick: string
   f: string
   g: string
   area: string
-  areaSolid: string
+  areaLine: string
   conv: string
-  font: string
+  rest: string
+  red: string
+  mono: string
 }
 
 /**
@@ -45,33 +42,31 @@ export function toCanvasColor(css: string, alpha?: number): string {
   return `rgba(${r}, ${g}, ${bl}, ${alpha ?? own})`
 }
 
-/** Deckkraft der Produktfläche über f und g */
-export const AREA_ALPHA = 0.45
 /**
- * Farbe von g(t−τ): ein Rot mit mehr Abstand zum Hintergrund als f, hell also dunkler, dunkel
- * heller. Die Helligkeit unterscheidet g von f, nicht der Farbton. Legende: `swatch.tsx`.
- */
-export const G_COLOR = { light: '#7E1817', dark: '#FCA5A5' }
-
-/**
- * Die Farben des Plots aus den Tokens des ohmtools-Designs: f in einer Diagrammfarbe (Rot ist die
- * einzige Akzentfarbe), g in `G_COLOR`, das Ergebnis in der Textfarbe, Raster und
- * Achsen grau.
+ * Die Farben des Plots aus den Tokens des ohmtools-Designs: die Kurven sind Datenreihen in den
+ * Datenfarben (f blau, g orange, die Produktfläche violett wie im Logo), das Ergebnis in der
+ * Textfarbe, der Abspielkopf im roten Akzent. Raster und Achsen grau, die Zahlen in mono.
  */
 export function readPlotColors(el: Element = document.documentElement): PlotColors {
   const cs = getComputedStyle(el)
-  const raw = (name: string) => cs.getPropertyValue(name).trim()
-  const v = (name: string) => toCanvasColor(raw(name))
+  const v = (name: string) => toCanvasColor(cs.getPropertyValue(name).trim())
+  const probe = document.createElement('span')
+  probe.className = 'font-mono'
+  document.body.append(probe)
+  const mono = getComputedStyle(probe).fontFamily || 'monospace'
+  probe.remove()
   return {
-    grid: v('--border'),
-    axis: v('--muted-foreground'),
-    muted: v('--muted-foreground'),
-    f: v('--chart-2'),
-    g: el.classList.contains('dark') ? G_COLOR.dark : G_COLOR.light,
-    area: toCanvasColor(raw('--chart-1'), AREA_ALPHA),
-    areaSolid: v('--chart-1'),
+    grid: v('--grid'),
+    axis: v('--ring'),
+    tick: v('--hour'),
+    f: v('--kind-ue-border'),
+    g: v('--kind-pr-border'),
+    area: v('--kind-s'),
+    areaLine: v('--kind-s-border'),
     conv: v('--foreground'),
-    font: getComputedStyle(document.body).fontFamily || 'sans-serif',
+    rest: v('--ring'),
+    red: v('--accent-red'),
+    mono,
   }
 }
 
@@ -99,10 +94,67 @@ export function fmtT(v: number): string {
   return sign + +a.toFixed(3) + 'T'
 }
 
+/**
+ * Was der Plot zeigt. Der Animator zeigt alles; die Anleitung zeigt je Schritt einen Teil und
+ * blendet ihn mit den Zahlen von 0 bis 1 ein.
+ */
+export type PlotLayers = {
+  /** f(τ) */
+  f: boolean
+  /** g(t−τ); `flip` 0 → g(τ), 1 → g(−τ) (gespiegelt), `shift` ist die Verschiebung (sonst t) */
+  g: boolean
+  flip: number
+  shift?: number
+  /** g(τ) vor dem Spiegeln, gestrichelt in Grau */
+  ghost: boolean
+  /** Produktfläche f(τ)·g(t−τ), 0 … 1 eingeblendet */
+  area: number
+  /** Ergebnis bis t; `rest` dazu den Rest gestrichelt; `convOnly` skaliert nur auf das Ergebnis */
+  conv: boolean
+  rest: boolean
+  convOnly: boolean
+  /** Abspielkopf bei t */
+  playhead: boolean
+  /** Zahlen an den Achsen (aus für Vorschaubilder) */
+  ticks: boolean
+  /** y-Bereich, wenn er gerade gleitet */
+  y?: [number, number]
+}
+
+export const ANIMATOR_LAYERS: PlotLayers = {
+  f: true,
+  g: true,
+  flip: 1,
+  ghost: false,
+  area: 1,
+  conv: true,
+  rest: true,
+  convOnly: false,
+  playhead: true,
+  ticks: true,
+}
+
+const TICK_FONT = 12
+/** Platz für den Punkt des Abspielkopfs über der höchsten Stelle */
+const PAD_T = 8
+
+export type PlotBox = { L: number; R: number; T: number; B: number }
+
+/** Die Ränder um die Zeichenfläche: links die Zahlen von f und g, rechts die des Ergebnisses in T. */
+export function plotBox(r: ConvolutionResult, layers: PlotLayers): PlotBox {
+  if (!layers.ticks) return { L: 1, R: 1, T: 4, B: 2 }
+  const right = r.convInT && (layers.conv || layers.convOnly)
+  return { L: 40, R: right ? 40 : 12, T: PAD_T, B: 24 }
+}
+
+export function yRange(r: ConvolutionResult, layers: PlotLayers): [number, number] {
+  return layers.convOnly ? [r.cmin, r.cmax] : [r.ymin, r.ymax]
+}
+
 /** Plot-x (Pixel, CSS) → t */
-export function tFromX(r: ConvolutionResult, width: number, x: number): number {
-  const pw = width - PAD_L - PAD_R
-  return Math.min(r.xmax, Math.max(r.xmin, r.xmin + ((x - PAD_L) / pw) * (r.xmax - r.xmin)))
+export function tFromX(r: ConvolutionResult, box: PlotBox, width: number, x: number): number {
+  const pw = width - box.L - box.R
+  return Math.min(r.xmax, Math.max(r.xmin, r.xmin + ((x - box.L) / pw) * (r.xmax - r.xmin)))
 }
 
 export function drawPlot(
@@ -113,36 +165,44 @@ export function drawPlot(
   H: number,
   dpr: number,
   C: PlotColors,
+  layers: PlotLayers = ANIMATOR_LAYERS,
 ) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, W, H)
-  const L = PAD_L
-  const R = PAD_R
-  const T = PAD_T
-  const B = PAD_B
+  const { L, R, T, B } = plotBox(r, layers)
   const pw = W - L - R
   const ph = H - T - B
   if (pw <= 10 || ph <= 10) return
-  const { xmin, xmax, ymin, ymax, f, g, Tp } = r
+  const { xmin, xmax, f, g, Tp } = r
+  const [ymin, ymax] = layers.y ?? yRange(r, layers)
   const X = (x: number) => L + ((x - xmin) / (xmax - xmin)) * pw
   const Y = (y: number) => T + ((ymax - y) / (ymax - ymin)) * ph
+  const shift = layers.shift ?? t
+  const s = 1 - 2 * layers.flip
+  // g(shift + s·τ): s = 1 → g(τ) (vor dem Spiegeln, shift 0), s = −1 → g(shift − τ)
+  const gAt = (tau: number) => g.reg(shift + s * tau)
 
-  // Raster und Beschriftung
-  ctx.font = '11px ' + C.font
+  // Raster und Zahlen: x in Vielfachen von T, y links für f und g, rechts für das Ergebnis in T
   ctx.lineWidth = 1
-  const xs = niceStep((xmax - xmin) / Tp, Math.max(4, Math.floor(pw / 70)))
-  const ys = niceStep(ymax - ymin, Math.max(3, Math.floor(ph / 45)))
+  ctx.font = `${TICK_FONT}px ${C.mono}`
+  const xs = niceStep((xmax - xmin) / Tp, Math.max(4, Math.floor(pw / 110)))
+  const ys = niceStep(ymax - ymin, Math.min(6, Math.max(2, Math.floor(ph / 64))))
   ctx.strokeStyle = C.grid
-  ctx.fillStyle = C.muted
-  ctx.textAlign = 'center'
+  ctx.fillStyle = C.tick
   ctx.textBaseline = 'top'
-  for (let v = Math.ceil(xmin / Tp / xs - 1e-9) * xs; v <= xmax / Tp + 1e-9; v += xs) {
+  const x0v = Math.ceil(xmin / Tp / xs - 1e-9) * xs
+  for (let v = x0v; v <= xmax / Tp + 1e-9; v += xs) {
     const px = Math.round(X(v * Tp)) + 0.5
     ctx.beginPath()
     ctx.moveTo(px, T)
     ctx.lineTo(px, T + ph)
     ctx.stroke()
-    ctx.fillText(fmtT(v), px, T + ph + 6)
+    if (!layers.ticks) continue
+    // Die äußeren Zahlen bündig zum Rand, damit sie nicht abgeschnitten werden
+    const label = fmtT(v)
+    const w = ctx.measureText(label).width
+    ctx.textAlign = 'left'
+    ctx.fillText(label, Math.min(W - w, Math.max(0, px - w / 2)), T + ph + 6)
   }
   ctx.textBaseline = 'middle'
   for (let v = Math.ceil(ymin / ys - 1e-9) * ys; v <= ymax + 1e-9; v += ys) {
@@ -151,14 +211,15 @@ export function drawPlot(
     ctx.moveTo(L, py)
     ctx.lineTo(L + pw, py)
     ctx.stroke()
-    ctx.fillStyle = C.muted
-    ctx.textAlign = 'right'
-    ctx.fillText(fmt(v, ys), L - 6, py)
-    if (r.convInT) {
-      // rechte Achse: Faltung in Vielfachen von T
-      ctx.fillStyle = C.conv
+    if (!layers.ticks) continue
+    const yl = Math.min(T + ph - TICK_FONT / 2, Math.max(TICK_FONT / 2, py))
+    if (!layers.convOnly || !r.convInT) {
+      ctx.textAlign = 'right'
+      ctx.fillText(fmt(v, ys), L - 8, yl)
+    }
+    if (r.convInT && (layers.conv || layers.convOnly)) {
       ctx.textAlign = 'left'
-      ctx.fillText(fmtT(v), L + pw + 6, py)
+      ctx.fillText(fmtT(v), L + pw + 8, yl)
     }
   }
   ctx.strokeStyle = C.axis
@@ -172,20 +233,16 @@ export function drawPlot(
     ctx.lineTo(x0, T + ph)
   }
   ctx.stroke()
-  ctx.fillStyle = C.muted
-  ctx.textAlign = 'right'
-  ctx.textBaseline = 'bottom'
-  ctx.fillText('τ, t', L + pw - 2, T + ph - 3)
 
   ctx.save()
   ctx.beginPath()
-  ctx.rect(L, T - 1, pw, ph + 2)
+  ctx.rect(L, 0, pw, T + ph + 1)
   ctx.clip()
 
   const steps = Math.max(200, Math.round(pw * 2))
   const tauAt = (j: number) => xmin + ((xmax - xmin) * j) / steps
 
-  // Dirac-Impuls als Pfeil, Länge = Gewicht; Gewicht ≠ ±1 steht in Klammern daneben
+  // Dirac-Impuls als Pfeil, Länge = Gewicht (an den Zahlen der y-Achse abzulesen)
   const arrow = (x: number, w: number, color: string, lw: number) => {
     if (Math.abs(w) < 1e-9 || x < xmin - 1e-9 || x > xmax + 1e-9) return
     const px = X(x)
@@ -196,6 +253,7 @@ export function drawPlot(
     ctx.strokeStyle = color
     ctx.fillStyle = color
     ctx.lineWidth = lw
+    ctx.setLineDash([])
     ctx.beginPath()
     ctx.moveTo(px, p0)
     ctx.lineTo(px, p1 + dir * hs * 0.8)
@@ -206,29 +264,13 @@ export function drawPlot(
     ctx.lineTo(px + hs * 0.6, p1 + dir * hs)
     ctx.closePath()
     ctx.fill()
-    if (lw <= 2.5 && Math.abs(Math.abs(w) - 1) > 1e-3) {
-      ctx.textAlign = 'left'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('(' + String(+w.toFixed(2)).replace('-', '−') + ')', px + 7, p1 + dir * 5)
-    }
   }
 
-  // Fläche f(τ)·g(t−τ)
-  ctx.fillStyle = C.area
-  ctx.beginPath()
-  ctx.moveTo(X(xmin), Y(0))
-  for (let j = 0; j <= steps; j++) {
-    const tau = tauAt(j)
-    ctx.lineTo(X(tau), Y(f.reg(tau) * g.reg(t - tau)))
-  }
-  ctx.lineTo(X(xmax), Y(0))
-  ctx.closePath()
-  ctx.fill()
-
-  const curve = (fn: (x: number) => number, color: string, w: number) => {
+  const curve = (fn: (x: number) => number, color: string, w: number, dash: number[] = []) => {
     ctx.strokeStyle = color
     ctx.lineWidth = w
     ctx.lineJoin = 'round'
+    ctx.setLineDash(dash)
     ctx.beginPath()
     for (let j = 0; j <= steps; j++) {
       const tau = tauAt(j)
@@ -238,43 +280,105 @@ export function drawPlot(
       else ctx.moveTo(px, py)
     }
     ctx.stroke()
+    ctx.setLineDash([])
   }
-  // Impulsanteile des Produkts f(τ)·g(t−τ)
-  for (const d of r.gImp) arrow(t - d.p, d.w * f.reg(t - d.p), C.areaSolid, 6)
-  for (const d of r.fImp) arrow(d.p, d.w * g.reg(t - d.p), C.areaSolid, 6)
-  curve(f.reg, C.f, 2)
-  for (const d of r.fImp) arrow(d.p, d.w, C.f, 2)
-  curve((tau) => g.reg(t - tau), C.g, 2)
-  for (const d of r.gImp) arrow(t - d.p, d.w, C.g, 2)
 
-  // Faltungsergebnis bis t
-  ctx.strokeStyle = C.conv
-  ctx.lineWidth = 2.25
-  ctx.beginPath()
-  const kEnd = Math.min(r.NT, Math.floor((t - xmin) / r.h))
-  for (let k = 0; k <= kEnd; k++) {
-    const px = X(xmin + k * r.h)
-    const py = Y(r.conv[k] / r.cScale)
-    if (k) ctx.lineTo(px, py)
-    else ctx.moveTo(px, py)
+  const fg = !layers.convOnly
+
+  // Produktfläche f(τ)·g(t−τ): violett gefüllt und schraffiert, die Farbe ist nie das einzige Merkmal
+  if (fg && layers.area > 0) {
+    ctx.globalAlpha = layers.area
+    const path = new Path2D()
+    path.moveTo(X(xmin), Y(0))
+    for (let j = 0; j <= steps; j++) {
+      const tau = tauAt(j)
+      path.lineTo(X(tau), Y(f.reg(tau) * gAt(tau)))
+    }
+    path.lineTo(X(xmax), Y(0))
+    path.closePath()
+    ctx.fillStyle = C.area
+    ctx.fill(path)
+    ctx.save()
+    ctx.clip(path)
+    ctx.strokeStyle = C.areaLine
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    for (let d = -ph; d < pw + ph; d += 6) {
+      ctx.moveTo(L + d, T + ph)
+      ctx.lineTo(L + d + ph, T)
+    }
+    ctx.stroke()
+    ctx.restore()
+    ctx.strokeStyle = C.areaLine
+    ctx.lineWidth = 1
+    ctx.stroke(path)
+    for (const d of r.gImp) arrow(shift - d.p, d.w * f.reg(shift - d.p), C.areaLine, 4)
+    for (const d of r.fImp) arrow(d.p, d.w * gAt(d.p), C.areaLine, 4)
+    ctx.globalAlpha = 1
   }
+
+  if (fg && layers.ghost) {
+    curve(g.reg, C.rest, 1.5, [3, 4])
+    for (const d of r.gImp) arrow(d.p, d.w, C.rest, 1.5)
+  }
+  if (fg && layers.f) {
+    curve(f.reg, C.f, 2)
+    for (const d of r.fImp) arrow(d.p, d.w, C.f, 2)
+  }
+  if (fg && layers.g) {
+    curve(gAt, C.g, 2, [6, 4])
+    // Impuls von g bei p: g(shift + s·τ) hat ihn bei τ = (p − shift)/s
+    if (Math.abs(s) > 1e-3) for (const d of r.gImp) arrow((d.p - shift) / s, d.w / Math.abs(s), C.g, 2)
+  }
+
+  // Ergebnis: bis t durchgezogen, der Rest gestrichelt in Grau
+  const cy = (k: number) => Y(r.conv[k] / r.cScale)
   const cNow = convAt(r, t) / r.cScale
-  ctx.lineTo(X(t), Y(cNow))
-  ctx.stroke()
-  for (const d of r.convImp) if (d.p <= t) arrow(d.p, d.w / r.cScale, C.conv, 2)
-
-  // Marker bei t
-  ctx.setLineDash([4, 4])
-  ctx.strokeStyle = C.axis
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(X(t), T)
-  ctx.lineTo(X(t), T + ph)
-  ctx.stroke()
-  ctx.setLineDash([])
-  ctx.fillStyle = C.conv
-  ctx.beginPath()
-  ctx.arc(X(t), Y(cNow), 4, 0, Math.PI * 2)
-  ctx.fill()
+  const kEnd = Math.min(r.NT, Math.floor((t - xmin) / r.h))
+  if (layers.rest && kEnd < r.NT) {
+    ctx.strokeStyle = C.rest
+    ctx.lineWidth = 1.5
+    ctx.setLineDash([3, 4])
+    ctx.beginPath()
+    ctx.moveTo(X(t), Y(cNow))
+    for (let k = Math.max(0, kEnd + 1); k <= r.NT; k++) ctx.lineTo(X(xmin + k * r.h), cy(k))
+    ctx.stroke()
+    ctx.setLineDash([])
+    for (const d of r.convImp) if (d.p > t) arrow(d.p, d.w / r.cScale, C.rest, 1.5)
+  }
+  if (layers.conv) {
+    ctx.strokeStyle = C.conv
+    ctx.lineWidth = 2.25
+    ctx.lineJoin = 'round'
+    ctx.beginPath()
+    for (let k = 0; k <= kEnd; k++) {
+      if (k) ctx.lineTo(X(xmin + k * r.h), cy(k))
+      else ctx.moveTo(X(xmin), cy(0))
+    }
+    ctx.lineTo(X(t), Y(cNow))
+    ctx.stroke()
+    for (const d of r.convImp) if (d.p <= t) arrow(d.p, d.w / r.cScale, C.conv, 2)
+  }
   ctx.restore()
+
+  // Abspielkopf: rote Linie mit Punkt oben, dazu der Punkt auf dem Ergebnis
+  if (layers.playhead) {
+    const px = Math.round(X(t)) + 0.5
+    ctx.strokeStyle = C.red
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.moveTo(px, T)
+    ctx.lineTo(px, T + ph)
+    ctx.stroke()
+    ctx.fillStyle = C.red
+    ctx.beginPath()
+    ctx.arc(px, T, 4, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  if (layers.conv) {
+    ctx.fillStyle = C.conv
+    ctx.beginPath()
+    ctx.arc(X(t), Y(cNow), 4, 0, Math.PI * 2)
+    ctx.fill()
+  }
 }

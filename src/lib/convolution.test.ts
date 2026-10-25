@@ -43,9 +43,19 @@ describe('computeConvolution', () => {
     expect(r.convImp[0].w).toBeCloseTo(2, 6)
   })
 
-  it('setzt einen sinnvollen y-Bereich', () => {
+  it('setzt einen knappen y-Bereich: unten bei 0, oben wenig Luft', () => {
     const r = computeConvolution(fn('rect(t)'), fn('rect(t)'), 1, -2, 2)
     expect(r.ymin).toBe(0)
     expect(r.ymax).toBeGreaterThan(1)
+    expect(r.ymax).toBeLessThan(1.1)
+    expect(r.cmin).toBe(0)
+    expect(r.cmax).toBeGreaterThan(1)
+    expect(r.cmax).toBeLessThan(1.1)
+  })
+
+  it('geht unter 0, wenn etwas negativ wird', () => {
+    const r = computeConvolution(fn('sin(2pi t)*(abs(t)<2)'), fn('rect(2t)'), 1, -3, 3)
+    expect(r.ymin).toBeLessThan(-1)
+    expect(r.cmin).toBeLessThan(0)
   })
 })

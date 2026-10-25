@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 const REPO_URL = 'https://github.com/ohmtools/faltung'
 
-/** Das GitHub-Zeichen als Link zum Quellcode, im Footer und auf der Seite Einstellungen. */
+/** Das GitHub-Zeichen als Link zum Quellcode, unter „Über“ in den Einstellungen. */
 export function GitHubLink({ className }: { className?: string }) {
   return (
     <a
@@ -13,7 +13,7 @@ export function GitHubLink({ className }: { className?: string }) {
       rel="noreferrer"
       aria-label={m.sourceCode}
       title={m.sourceCode}
-      className={cn(buttonVariants({ variant: 'ghost', size: 'icon-xs' }), className)}
+      className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), className)}
     >
       {/* lucide-react führt keine Markenzeichen mehr */}
       <svg viewBox="0 0 24 24" aria-hidden fill="currentColor">

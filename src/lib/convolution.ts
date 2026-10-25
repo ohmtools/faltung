@@ -18,8 +18,12 @@ export type ConvolutionResult = {
   /** Ohne Impulse hat f∗g die Einheit Amplitude·Zeit → Achse in Vielfachen von T. */
   convInT: boolean
   cScale: number
+  /** Wertebereich des Plots: knapp über dem Größten, unten bei 0, außer es wird negativ */
   ymin: number
   ymax: number
+  /** dasselbe nur für das Ergebnis (Ergebnisplot der Anleitung, Zeitleiste) */
+  cmin: number
+  cmax: number
 }
 
 /**
@@ -117,7 +121,20 @@ export function computeConvolution(
   ext(fHi)
   ext(gLo)
   ext(gHi)
-  for (let k = 0; k <= NT; k++) ext(conv[k] / cScale)
+  let cLo = 0
+  let cHi = 0
+  for (let k = 0; k <= NT; k++) {
+    const v = conv[k] / cScale
+    cLo = Math.min(cLo, v)
+    cHi = Math.max(cHi, v)
+  }
+  for (const d of convImp) {
+    if (d.p < xmin || d.p > xmax) continue
+    cLo = Math.min(cLo, d.w / cScale)
+    cHi = Math.max(cHi, d.w / cScale)
+  }
+  ext(cLo)
+  ext(cHi)
   for (const d of fImp) {
     if (d.p >= xmin && d.p <= xmax) ext(d.w)
     ext(d.w * gLo)
@@ -128,14 +145,18 @@ export function computeConvolution(
     ext(d.w * fLo)
     ext(d.w * fHi)
   }
-  for (const d of convImp) if (d.p >= xmin && d.p <= xmax) ext(d.w / cScale)
   if (hi - lo < 1e-9) hi = lo + 1
-  const pad = (hi - lo) * 0.08
+  if (cHi - cLo < 1e-9) cHi = cLo + 1
+  // Knapp: oben etwas Luft für den Punkt des Abspielkopfs, unten keine, solange nichts negativ ist
+  const pad = (hi - lo) * 0.05
+  const cPad = (cHi - cLo) * 0.05
 
   return {
     f, g, Tp, xmin, xmax, NT, h, conv, fImp, gImp, convImp, convInT, cScale,
     ymax: hi + pad,
     ymin: lo < 0 ? lo - pad : 0,
+    cmax: cHi + cPad,
+    cmin: cLo < 0 ? cLo - cPad : 0,
   }
 }
 

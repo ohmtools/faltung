@@ -1,43 +1,41 @@
-import { ImageDown, Link2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronLeft, ImageDown, Link2, SlidersHorizontal, X } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { toast } from 'sonner'
 
 import { AppToaster } from '@/components/app-toaster'
-import { Brand } from '@/components/brand'
-import { Controls, Examples } from '@/components/controls'
+import { Logo } from '@/components/brand'
+import { ExamplesMenu, FormulaBar, FormulaSummary, type ControlsProps } from '@/components/controls'
 import { ConvolutionPlot, type ConvolutionPlotHandle } from '@/components/convolution-plot'
-import { Explanation, Properties } from '@/components/explanation'
-import { FunctionReference } from '@/components/function-reference'
-import { GitHubLink } from '@/components/github-link'
-import { InstallButton } from '@/components/install'
-import { LanguageSwitcher } from '@/components/language-switcher'
+import { GuidePage } from '@/components/guide'
+import { PropertiesPage } from '@/components/properties'
 import { PwaPrompt } from '@/components/pwa-prompt'
-import { Readout } from '@/components/readout'
-import { Section } from '@/components/section'
-import { SettingsPage } from '@/components/settings-page'
-import { Swatch } from '@/components/swatch'
-import { TabBar, type Tab } from '@/components/tab-bar'
+import { SettingsPanel } from '@/components/settings-page'
+import { PageTabs } from '@/components/tab-bar'
 import { Tex } from '@/components/tex'
 import { Transport } from '@/components/transport'
 import { Button } from '@/components/ui/button'
-import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Kbd, KbdGroup } from '@/components/ui/kbd'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useInstallPrompt, type InstallPrompt } from '@/hooks/use-install-prompt'
+import { useInstallPrompt } from '@/hooks/use-install-prompt'
+import { useMedia } from '@/hooks/use-media'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { formulaError, m } from '@/i18n'
+import { formulaError, localized, m } from '@/i18n'
 import { computeConvolution, type ConvolutionResult } from '@/lib/convolution'
 import { bind, compileFormula, FormulaError, type CompiledFormula } from '@/lib/formula'
-import { Playhead } from '@/lib/playhead'
+import { COMPACT_QUERY, LG_QUERY, WIDE_QUERY } from '@/lib/media'
+import { PAGES, type Page } from '@/lib/pages'
+import { GLIDE_MS, Playhead } from '@/lib/playhead'
 import {
   DEFAULT_SETTINGS,
+  GUIDE_PRESET,
+  matchPreset,
   parseNumber,
   settingsFromHash,
   settingsToHash,
   type Preset,
   type Settings,
 } from '@/lib/presets'
-import { isDesktop } from '@/lib/media'
 import { cn } from '@/lib/utils'
 
 /** Dauer eines Durchlaufs über den ganzen Bereich bei 1× */
@@ -97,14 +95,56 @@ function isTypingTarget(el: EventTarget | null) {
   if (!(el instanceof HTMLElement)) return false
   return (
     el.isContentEditable ||
-    el.closest('input, textarea, select, button, a, [role="slider"], [role="combobox"], [role="menu"]') !==
-      null
+    el.closest(
+      'input, textarea, select, button, a, [role="slider"], [role="combobox"], [role="menu"], [role="dialog"]',
+    ) !== null
+  )
+}
+
+/** Die Meldung zu Formeln und Bereich für die Zeile über dem Plot; null ohne Fehler. */
+function controlsProblem({ settings, fError, gError, rangeError }: ControlsProps): string | null {
+  if (fError) return `f: ${fError}`
+  if (gError) return `g: ${gError}`
+  if (!(parseNumber(settings.T) > 0)) return m.periodPositive
+  return rangeError
+}
+
+/** Wie eine Seite hereinkommt (siehe `.page-view` in index.css) */
+type Nav = 'forward' | 'back' | 'close'
+
+function HeaderButton({ label, onClick, children, pressed }: {
+  label: string
+  onClick: () => void
+  children: React.ReactNode
+  pressed?: boolean
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-10 compact:size-9 aria-pressed:bg-accent"
+            onClick={onClick}
+            aria-label={label}
+            aria-pressed={pressed}
+          />
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
 export default function App() {
   const installPrompt = useInstallPrompt()
   const reduce = useReducedMotion()
+  const compact = useMedia(COMPACT_QUERY)
+  const wide = useMedia(WIDE_QUERY)
+  const lg = useMedia(LG_QUERY)
   const plotRef = useRef<ConvolutionPlotHandle>(null)
 
   // Startzustand: aus dem Link oder Standard; Animation läuft, außer bei reduzierter Bewegung
@@ -135,6 +175,7 @@ export default function App() {
   const fState = useMemo(() => tryCompile(applied.f), [applied.f])
   const gState = useMemo(() => tryCompile(applied.g), [applied.g])
   const rangeState = useMemo(() => parseRange(applied), [applied])
+  const activePreset = useMemo(() => matchPreset(applied), [applied])
 
   // Neu rechnen
   const computedFor = useRef<Settings>(initial)
@@ -213,10 +254,68 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  // Tastenkürzel
+  // Seiten: Animator, Anleitung, Eigenschaften; die Einstellungen sind auf dem Telefon eine eigene
+  // Seite, ab `compact:` ein Blatt von rechts, breit eine Seitenleiste
+  const [page, setPage] = useState<Page>('animator')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsPage = settingsOpen && !compact
+  const [guidePreset, setGuidePreset] = useState<Preset>(GUIDE_PRESET)
+
+  /** Wechselt die Seite mit einer View Transition: nur die neue Seite bewegt sich. */
+  const navigate = useCallback(
+    (nav: Nav, update: () => void) => {
+      if (reduce || !document.startViewTransition) {
+        update()
+        return
+      }
+      const root = document.documentElement
+      root.dataset.nav = nav
+      const vt = document.startViewTransition(() => flushSync(update))
+      void vt.finished.finally(() => {
+        if (root.dataset.nav === nav) delete root.dataset.nav
+      })
+    },
+    [reduce],
+  )
+
+  const goPage = useCallback(
+    (next: Page) => {
+      if (next === page && !settingsPage) return
+      const nav: Nav = settingsPage ? 'close' : PAGES.indexOf(next) > PAGES.indexOf(page) ? 'forward' : 'back'
+      navigate(nav, () => {
+        setPage(next)
+        if (settingsPage) setSettingsOpen(false)
+      })
+    },
+    [page, settingsPage, navigate],
+  )
+
+  const toggleSettings = useCallback(() => {
+    if (compact) setSettingsOpen((o) => !o)
+    else navigate(settingsOpen ? 'close' : 'forward', () => setSettingsOpen((o) => !o))
+  }, [compact, settingsOpen, navigate])
+
+  // Die Animation läuft nur, solange sie zu sehen ist
+  const resumeOnReturn = useRef(false)
+  useEffect(() => {
+    const visible = page === 'animator' && !settingsPage
+    if (!visible && playhead.playing) {
+      resumeOnReturn.current = true
+      playhead.setPlaying(false)
+    } else if (visible && resumeOnReturn.current) {
+      resumeOnReturn.current = false
+      playhead.setPlaying(true)
+    }
+  }, [page, settingsPage, playhead])
+
+  // Tastenkürzel des Animators
+  const keysActive = useRef(true)
+  useEffect(() => {
+    keysActive.current = page === 'animator' && !settingsPage
+  }, [page, settingsPage])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return
+      if (!keysActive.current || e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return
       const r = resultRef.current
       switch (e.key) {
         case ' ':
@@ -230,11 +329,10 @@ export default function App() {
           playhead.step(e.shiftKey ? 0.05 : 0.01, r.xmin, r.xmax)
           break
         case 'Home':
-          playhead.setT(r.xmin)
+          playhead.glideTo(r.xmin, reduce ? 0 : GLIDE_MS)
           break
         case 'End':
-          playhead.setPlaying(false)
-          playhead.setT(r.xmax)
+          playhead.glideTo(r.xmax, reduce ? 0 : GLIDE_MS)
           break
         default:
           return
@@ -243,7 +341,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [playhead])
+  }, [playhead, reduce])
 
   const change = useCallback((patch: Partial<Settings>) => {
     setSettings((s) => ({ ...s, ...patch }))
@@ -258,21 +356,22 @@ export default function App() {
     applyNow({ ...settings, f: settings.g, g: settings.f })
   }, [settings, applyNow])
 
-  // Telefone zeigen eine Seite auf einmal (`TabBar`); los geht es mit der Animation
-  const [tab, setTab] = useState<Tab>('animation')
-  const switchTab = useCallback((next: Tab) => {
-    setTab(next)
-    window.scrollTo({ top: 0 })
-  }, [])
-
   const preset = useCallback(
     (p: Preset) => {
       restart.current = true
+      resumeOnReturn.current = false
       applyNow({ ...settings, f: p.f, g: p.g, a: String(p.a), b: String(p.b) })
-      // Ein Beispiel startet die Animation von vorn: auf dem Telefon dorthin wechseln
-      if (!isDesktop()) switchTab('animation')
     },
-    [settings, applyNow, switchTab],
+    [settings, applyNow],
+  )
+
+  /** Aus Anleitung und Eigenschaften: das Beispiel im Animator von vorn abspielen */
+  const openInAnimator = useCallback(
+    (p: Preset) => {
+      preset({ ...p })
+      goPage('animator')
+    },
+    [preset, goPage],
   )
 
   const share = useCallback(async () => {
@@ -306,188 +405,198 @@ export default function App() {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000)
   }, [])
 
-  const phonePage = tab === 'animation' ? 'h-dvh overflow-hidden' : 'min-h-dvh'
+  const controls: ControlsProps = {
+    settings,
+    onChange: change,
+    onSwap: swap,
+    fError: fState.ok ? null : fState.error,
+    gError: gState.ok ? null : gState.error,
+    fTex: fState.ok ? fState.c.tex : null,
+    gTex: gState.ok ? gState.c.tex : null,
+    rangeError: rangeState.rangeError,
+  }
+  const problem = controlsProblem({ ...controls, settings: applied })
+
+  // Die Seitenleiste der Einstellungen kommt von rechts herein
+  const asideRef = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    if (!settingsOpen || !wide || reduce) return
+    asideRef.current?.animate(
+      [
+        { opacity: 0, transform: 'translateX(24px)' },
+        { opacity: 1, transform: 'none' },
+      ],
+      { duration: 280, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+    )
+  }, [settingsOpen, wide, reduce])
+
+  const settingsIcon = (
+    <HeaderButton label={m.settings} onClick={toggleSettings} pressed={compact ? settingsOpen : undefined}>
+      <SlidersHorizontal />
+    </HeaderButton>
+  )
 
   return (
     <TooltipProvider>
-      {/* Desktop: genau eine Ansicht hoch, die Seite scrollt nie, die Spalten in sich. Telefone
-          (und zu niedrige Fenster, siehe `desktop` in index.css): eine Seite je Tab; die Animation
-          ist ebenfalls eine Ansicht hoch, die anderen scrollen normal. Platz für die Tab-Leiste
-          und im Querformat für die Notch. */}
-      <div
-        className={cn(
-          'flex flex-col pr-[env(safe-area-inset-right)] pb-[calc(3.5rem+env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] desktop:h-dvh desktop:min-h-0 desktop:overflow-hidden desktop:pb-0',
-          phonePage,
-        )}
-      >
-        {/* Kein sichtbarer Header (ohmtools-Design); der Name steht im Footer */}
-        <h1 className="sr-only">{m.appTitle}</h1>
-
-        <main className="grid min-h-0 w-full flex-1 grid-cols-1 desktop:grid-cols-[24rem_minmax(0,1fr)]">
-          {/* Links die Eingaben und zum Nachschlagen; auf dem Desktop scrollt die Spalte in sich,
-              auf dem Telefon sind es zwei Tabs. Linien statt Kästen trennen die Abschnitte. */}
-          <div
-            className={cn(
-              'min-h-0 flex-col desktop:flex desktop:overflow-y-auto desktop:border-r',
-              tab === 'functions' || tab === 'explanation' ? 'flex' : 'hidden',
+      {/* Jede Stufe ist genau eine Ansicht hoch, die Seite scrollt nie; was nicht passt, scrollt in
+          sich. Platz für die Notch im Querformat. */}
+      <div className="flex h-dvh flex-col overflow-hidden pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
+        <header className="shrink-0 border-b pt-[env(safe-area-inset-top)]">
+          <div className="flex h-14 items-center justify-between gap-4 pr-2 pl-4 short:h-12 compact:px-6">
+            {settingsPage ? (
+              <div className="flex min-w-0 items-center gap-1">
+                <h1 className="sr-only">{m.appTitle}</h1>
+                <Button variant="ghost" size="icon" className="-ml-2.5 size-10" onClick={toggleSettings} aria-label={m.back}>
+                  <ChevronLeft />
+                </Button>
+                <h2 className="font-heading text-base font-semibold">{m.settings}</h2>
+              </div>
+            ) : (
+              <div className="flex min-w-0 items-center gap-6">
+                <div className="flex items-center gap-2.5">
+                  <Logo />
+                  <h1 className="font-heading text-base font-semibold compact:text-sm">{m.appTitle}</h1>
+                </div>
+                <PageTabs value={page} onChange={goPage} className="hidden compact:block" />
+              </div>
             )}
-          >
-            <div className={cn('flex-col divide-y desktop:flex', tab === 'functions' ? 'flex' : 'hidden')}>
-              <Controls
-                settings={settings}
-                onChange={change}
-                onSwap={swap}
-                fError={fState.ok ? null : fState.error}
-                gError={gState.ok ? null : gState.error}
-                fTex={fState.ok ? fState.c.tex : null}
-                gTex={gState.ok ? gState.c.tex : null}
-                rangeError={rangeState.rangeError}
-              />
-              <Examples onPreset={preset} />
-              <FunctionReference />
-            </div>
-            <div
-              className={cn(
-                'flex-col divide-y desktop:flex desktop:border-t',
-                tab === 'explanation' ? 'flex' : 'hidden',
-              )}
-            >
-              <Explanation />
-              <Properties />
-              <Usage />
-            </div>
-          </div>
-
-          {/* Rechts die Animation; der Footer gehört auf dem Desktop zu dieser Spalte */}
-          <div
-            className={cn(
-              'min-h-0 flex-col overflow-y-auto desktop:flex desktop:overflow-hidden',
-              tab === 'animation' ? 'flex' : 'hidden',
+            {!settingsPage && (
+              <div className="flex items-center gap-2">
+                {page === 'animator' && (
+                  <>
+                    {lg && <ExamplesMenu onPreset={preset} />}
+                    <div className="flex items-center compact:gap-2">
+                      <HeaderButton label={m.copyLink} onClick={share}>
+                        <Link2 />
+                      </HeaderButton>
+                      <HeaderButton label={m.savePngTip} onClick={savePng}>
+                        <ImageDown />
+                      </HeaderButton>
+                    </div>
+                  </>
+                )}
+                {page === 'guide' && compact && (
+                  <ExamplesMenu onPreset={setGuidePreset} label={m.example(localized(guidePreset.name))} />
+                )}
+                {settingsIcon}
+              </div>
             )}
-          >
-            {/* Füllt die Höhe; auf zu niedrigen Telefonen (quer) nie kleiner als der Inhalt mit
-                dem Mindestmaß des Plots, dann scrollt die Spalte */}
-            <Section className="flex-[1_0_auto] gap-4 desktop:min-h-0 desktop:flex-1">
-              <CardHeader>
-                <CardTitle>{m.animationTitle}</CardTitle>
-                <CardDescription className="flex flex-col gap-1">
-                  <Tex
-                    math="(f*g)(t) = \int_{-\infty}^{\infty} f(\tau)\,g(t-\tau)\,\mathrm d\tau"
-                    className="whitespace-nowrap"
-                  />
-                  <span className="hidden max-w-[70ch] desktop:block">{m.animationHint}</span>
-                </CardDescription>
-                <CardAction className="flex items-center gap-1">
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={<Button variant="ghost" size="icon" onClick={share} aria-label={m.copyLink} />}
-                    >
-                      <Link2 />
-                    </TooltipTrigger>
-                    <TooltipContent>{m.copyLinkTip}</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={<Button variant="ghost" size="icon" onClick={savePng} aria-label={m.savePng} />}
-                    >
-                      <ImageDown />
-                    </TooltipTrigger>
-                    <TooltipContent>{m.savePngTip}</TooltipContent>
-                  </Tooltip>
-                </CardAction>
-              </CardHeader>
-              <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                <Legend convInT={result.convInT} />
-                <ConvolutionPlot ref={plotRef} result={result} playhead={playhead} className="min-h-48 flex-1" />
-                <Readout result={result} playhead={playhead} />
-              </CardContent>
-            </Section>
-            {/* Telefon: die Bedienleiste über der Tab-Leiste, wo der Daumen ist */}
-            <Transport result={result} playhead={playhead} className="border-t px-6 py-3" />
-            <Footer prompt={installPrompt} />
+          </div>
+        </header>
+
+        <div className="flex min-h-0 flex-1">
+          <div className="page-view flex min-h-0 min-w-0 flex-1 flex-col">
+            {settingsPage && (
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <SettingsPanel prompt={installPrompt} />
+              </div>
+            )}
+
+            <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'animator' || settingsPage) && 'hidden')}>
+              <div className="shrink-0 border-b py-2.5 pr-2 pl-4 compact:px-6 lg:py-4">
+                {lg ? (
+                  <FormulaBar {...controls} />
+                ) : (
+                  <FormulaSummary {...controls} onPreset={preset} activePreset={activePreset} />
+                )}
+              </div>
+              <main className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-4 pb-3 compact:px-6 compact:pt-5">
+                <TitleRow
+                  problem={problem}
+                  preset={activePreset}
+                  fTex={controls.fTex}
+                  gTex={controls.gTex}
+                  showTitle={compact}
+                />
+                <ConvolutionPlot
+                  ref={plotRef}
+                  result={result}
+                  playhead={playhead}
+                  scrub
+                  label={m.plotLabel}
+                  className="min-h-40 flex-1"
+                />
+              </main>
+              <Transport result={result} playhead={playhead} className="shrink-0 border-t px-4 py-3 compact:px-6" />
+            </div>
+
+            <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'guide' || settingsPage) && 'hidden')}>
+              <GuidePage preset={guidePreset} active={page === 'guide' && !settingsPage} onOpenInAnimator={openInAnimator} />
+            </div>
+
+            <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'properties' || settingsPage) && 'hidden')}>
+              <PropertiesPage onShow={openInAnimator} />
+            </div>
           </div>
 
-          {/* Nur Telefone: der Inhalt des Footers als Seite */}
-          <div className={cn('flex-col desktop:hidden', tab === 'settings' ? 'flex' : 'hidden')}>
-            <SettingsPage prompt={installPrompt} />
-          </div>
-        </main>
+          {wide && settingsOpen && (
+            <aside ref={asideRef} className="flex w-85 shrink-0 flex-col border-l" aria-label={m.settings}>
+              <div className="flex h-14 shrink-0 items-center justify-between border-b pr-3 pl-6">
+                <h2 className="font-heading text-base font-semibold">{m.settings}</h2>
+                <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(false)} aria-label={m.close}>
+                  <X />
+                </Button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <SettingsPanel prompt={installPrompt} />
+              </div>
+            </aside>
+          )}
+        </div>
 
-        <TabBar value={tab} onChange={switchTab} />
+        <PageTabs value={page} onChange={goPage} bar className="compact:hidden" />
       </div>
+
+      <Sheet open={compact && !wide && settingsOpen} onOpenChange={setSettingsOpen}>
+        <SheetContent side="right" closeLabel={m.close} className="w-95 max-w-[calc(100vw-2rem)] gap-0 sm:max-w-95">
+          <SheetHeader className="border-b px-6">
+            <SheetTitle className="text-base font-semibold">{m.settings}</SheetTitle>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+            <SettingsPanel prompt={installPrompt} />
+          </div>
+        </SheetContent>
+      </Sheet>
       <PwaPrompt />
       <AppToaster />
     </TooltipProvider>
   )
 }
 
-/** Logo, Name und Version · Hinweis · Installieren · Sprache · GitHub. Nur auf dem Desktop. */
-function Footer({ prompt }: { prompt: InstallPrompt }) {
+/**
+ * Über dem Plot: der Name des Beispiels (oder die eigenen Funktionen als Formel) und rechts die
+ * Faltungsformel; gibt es ein Problem mit der Eingabe, steht es an dieser Stelle.
+ */
+function TitleRow({ problem, preset, fTex, gTex, showTitle }: {
+  problem: string | null
+  preset: Preset | null
+  fTex: string | null
+  gTex: string | null
+  showTitle: boolean
+}) {
+  if (problem) {
+    return (
+      <p className="shrink-0 text-sm text-destructive" aria-live="polite">
+        {problem}
+      </p>
+    )
+  }
+  if (!showTitle) return null
   return (
-    <footer className="hidden border-t desktop:block">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-3 text-sm text-muted-foreground">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Brand className="text-foreground" />
-          {m.footerNote}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <InstallButton prompt={prompt} />
-          <LanguageSwitcher />
-          <GitHubLink />
-        </div>
-      </div>
-    </footer>
-  )
-}
-
-function Legend({ convInT }: { convInT: boolean }) {
-  const items: [React.ComponentProps<typeof Swatch>['series'], string][] = [
-    ['area', m.legendArea],
-    ['f', 'f(τ)'],
-    ['g', 'g(t−τ)'],
-    ['conv', convInT ? m.legendConvInT : '(f∗g)(t)'],
-  ]
-  return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-      {items.map(([series, label]) => (
-        <span key={series} className="inline-flex items-center gap-1.5">
-          <Swatch series={series} />
-          {label}
-        </span>
-      ))}
+    <div className="flex shrink-0 items-baseline justify-between gap-4 short:hidden">
+      <h2 className="min-w-0 overflow-x-auto overflow-y-hidden font-heading text-base font-semibold whitespace-nowrap">
+        {preset ? (
+          localized(preset.name)
+        ) : fTex && gTex ? (
+          <Tex math={`f(t) = ${fTex},\\quad g(t) = ${gTex}`} />
+        ) : (
+          m.ownFunctions
+        )}
+      </h2>
+      <Tex
+        math="(f*g)(t) = \int_{-\infty}^{\infty} f(\tau)\,g(t-\tau)\,\mathrm d\tau"
+        className="hidden shrink-0 whitespace-nowrap lg:inline"
+      />
     </div>
-  )
-}
-
-function Usage() {
-  const keys: [string[], string][] = [
-    [[m.keySpace], m.usagePlay],
-    [['←', '→'], m.usageStep],
-    [[m.keyHome, m.keyEnd], m.usageEnds],
-    [[m.keyDrag, m.keyTap], m.usageScrub],
-  ]
-  return (
-    <Section>
-      <CardHeader>
-        <CardTitle>{m.usageTitle}</CardTitle>
-        <CardDescription>{m.usageDescription}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <dl className="flex flex-col gap-3">
-          {keys.map(([k, v]) => (
-            <div key={v} className="flex items-center gap-3">
-              <dt>
-                <KbdGroup>
-                  {k.map((one) => (
-                    <Kbd key={one}>{one}</Kbd>
-                  ))}
-                </KbdGroup>
-              </dt>
-              <dd className="text-muted-foreground">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </CardContent>
-    </Section>
   )
 }

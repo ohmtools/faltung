@@ -1,7 +1,6 @@
-// Die `desktop`-Variante aus index.css als Media-Query, für die wenigen Stellen, die sie im
-// Script brauchen: beide Spalten nebeneinander, keine Tab-Leiste.
-export const DESKTOP_QUERY = '(width >= 64rem) and (height >= 600px)'
-
-export function isDesktop(): boolean {
-  return matchMedia(DESKTOP_QUERY).matches
-}
+// Die Stufen aus index.css als Media-Queries, für die Stellen, die sie im Script brauchen: welcher
+// Behälter die Einstellungen trägt und wie die Bedienleiste steht.
+export const COMPACT_QUERY = '(width >= 40rem), (height < 600px) and (orientation: landscape)'
+export const WIDE_QUERY = '(width >= 64rem) and (height >= 600px)'
+/** Breit genug für die Formelzeile über dem Plot (Tailwinds `lg:`) */
+export const LG_QUERY = '(width >= 64rem)'

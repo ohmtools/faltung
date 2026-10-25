@@ -1,8 +1,6 @@
 import { Fragment } from 'react'
 
-import { Section } from '@/components/section'
 import { Tex } from '@/components/tex'
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { localized, m } from '@/i18n'
 import type { Localized } from '@/lib/presets'
@@ -23,8 +21,8 @@ const FUNCS: { code: string; tex: (otherwise: string) => string; text: Localized
     code: 'delta(t), dirac(t)',
     tex: () => '\\delta(t)',
     text: {
-      de: 'Dirac-Impuls, als Pfeil gezeichnet; Gewicht ≠ 1 steht daneben',
-      en: 'Dirac impulse, drawn as an arrow; a weight ≠ 1 is written next to it',
+      de: 'Dirac-Impuls, als Pfeil gezeichnet; seine Länge ist das Gewicht',
+      en: 'Dirac impulse, drawn as an arrow; its length is the weight',
     },
   },
   { code: 'sinc(t)', tex: () => '\\frac{\\sin(\\pi t)}{\\pi t}', text: { de: 'Normierte sinc-Funktion', en: 'Normalized sinc function' } },
@@ -58,7 +56,7 @@ const FUNCS: { code: string; tex: (otherwise: string) => string; text: Localized
 function WithCode({ text }: { text: string }) {
   return text.split('`').map((part, i) =>
     i % 2 ? (
-      <code key={i} className="font-sans font-semibold text-foreground">
+      <code key={i} className="font-mono text-xs font-medium text-foreground">
         {part}
       </code>
     ) : (
@@ -67,39 +65,38 @@ function WithCode({ text }: { text: string }) {
   )
 }
 
+/** Was die Eingabefelder verstehen; im Popover der Formelzeile und im Blatt zum Bearbeiten. */
 export function FunctionReference() {
   return (
-    <Section>
-      <CardHeader>
-        <CardTitle>{m.referenceTitle}</CardTitle>
-        <CardDescription>
-          <WithCode text={m.referenceDescription} />
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-0">{m.referenceInput}</TableHead>
-              <TableHead className="pr-0">{m.referenceMeaning}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {FUNCS.map((f) => {
-              const tex = f.tex(m.otherwise)
-              return (
-                <TableRow key={f.code} className="hover:bg-transparent">
-                  <TableCell className="w-2/5 pl-0 align-top font-semibold whitespace-normal">{f.code}</TableCell>
-                  <TableCell className="pr-0 align-top whitespace-normal">
-                    <p className="text-muted-foreground">{localized(f.text)}</p>
-                    {tex && <Tex math={tex} className="mt-1 block overflow-x-auto overflow-y-hidden" />}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Section>
+    <div className="flex flex-col gap-2">
+      <h3 className="font-heading text-sm font-medium">{m.referenceTitle}</h3>
+      <p className="text-muted-foreground">
+        <WithCode text={m.referenceDescription} />
+      </p>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="pl-0">{m.referenceInput}</TableHead>
+            <TableHead className="pr-0">{m.referenceMeaning}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {FUNCS.map((f) => {
+            const tex = f.tex(m.otherwise)
+            return (
+              <TableRow key={f.code} className="hover:bg-transparent">
+                <TableCell className="w-2/5 pl-0 align-top font-mono text-xs font-medium whitespace-normal">
+                  {f.code}
+                </TableCell>
+                <TableCell className="pr-0 align-top whitespace-normal">
+                  <p className="text-muted-foreground">{localized(f.text)}</p>
+                  {tex && <Tex math={tex} className="mt-1 block overflow-x-auto overflow-y-hidden" />}
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

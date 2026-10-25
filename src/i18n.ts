@@ -68,6 +68,13 @@ export function formatNumber(v: number): string {
   return v.toLocaleString(locale)
 }
 
+const fixed3 = new Intl.NumberFormat(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+
+/** Ein Wert mit drei Nachkommastellen, „0,400“ bzw. "0.400", mit echtem Minus. */
+export function formatValue(v: number): string {
+  return fixed3.format(Math.abs(v) < 5e-4 ? 0 : v).replace('-', '−')
+}
+
 export function formulaError(p: FormulaProblem): string {
   return m.formulaError(p)
 }
