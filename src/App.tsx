@@ -479,7 +479,12 @@ export default function App() {
             </div>
 
             <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'guide' || settingsPage) && 'hidden')}>
-              <GuidePage preset={guidePreset} active={page === 'guide' && !settingsPage} onOpenInAnimator={openInAnimator} />
+              <GuidePage
+                preset={guidePreset}
+                onPreset={setGuidePreset}
+                active={page === 'guide' && !settingsPage}
+                onOpenInAnimator={openInAnimator}
+              />
             </div>
 
             <div className={cn('flex min-h-0 flex-1 flex-col', (page !== 'properties' || settingsPage) && 'hidden')}>

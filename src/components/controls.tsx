@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ArrowUpDown, ChevronDown, CircleHelp, Pencil } from 'lucide-react'
+import { ArrowLeftRight, ArrowUpDown, Check, ChevronDown, CircleHelp, Pencil } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 import { FunctionInput } from '@/components/function-input'
@@ -163,6 +163,69 @@ export function ExamplesMenu({ onPreset, label = m.examples }: { onPreset: (p: P
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+/**
+ * Die Beispiele der Anleitung auf dem Telefon (ab `compact:` stehen sie als `ExamplesMenu` im
+ * Header): ein Knopf mit dem gewählten Beispiel öffnet ein Blatt von unten mit der Liste, wie die
+ * Beispiele im Blatt zum Bearbeiten des Animators (DESIGN.md: Menüs auf dem Telefon von unten).
+ * Das gewählte trägt einen Haken.
+ */
+export function ExamplesSheet({
+  value,
+  onPreset,
+  className,
+}: {
+  value: Preset
+  onPreset: (p: Preset) => void
+  className?: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button
+        variant="outline"
+        className={cn('h-10 self-start', className)}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+      >
+        {m.example(localized(value.name))}
+        <ChevronDown data-icon="inline-end" className="text-muted-foreground" />
+      </Button>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent
+          side="bottom"
+          closeLabel={m.close}
+          className="mx-auto max-h-[90dvh] max-w-2xl gap-0 overflow-y-auto pb-[env(safe-area-inset-bottom)] min-[42rem]:border-x"
+        >
+          <SheetHeader className="pb-2">
+            <SheetTitle className="text-base font-semibold">{m.examples}</SheetTitle>
+          </SheetHeader>
+          <ul className="flex flex-col px-2 pb-4">
+            {PRESETS.map((p) => {
+              const current = p.name.de === value.name.de
+              return (
+                <li key={p.name.de}>
+                  <Button
+                    variant="ghost"
+                    className="h-11 w-full justify-start px-2 font-normal"
+                    aria-current={current || undefined}
+                    onClick={() => {
+                      onPreset(p)
+                      setOpen(false)
+                    }}
+                  >
+                    {current ? <Check data-icon="inline-start" /> : <span aria-hidden className="size-4 shrink-0" />}
+                    {localized(p.name)}
+                  </Button>
+                </li>
+              )
+            })}
+          </ul>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }
 

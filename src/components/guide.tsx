@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
+import { ExamplesSheet } from '@/components/controls'
 import { ConvolutionPlot } from '@/components/convolution-plot'
 import { fill } from '@/components/fill'
 import { Tex } from '@/components/tex'
@@ -150,14 +151,18 @@ function TSlider({ result, playhead, wide }: { result: ConvolutionResult; playhe
  * Die Seite Anleitung: die vier Schritte einer Faltung an einem Beispiel, jeder mit seinem Bild,
  * das sich beim Wechsel aufbaut (g klappt um, gleitet nach t, die Fläche blendet ein, das Ergebnis
  * läuft bis t). Breit: links die Schritte, rechts Vorschaubilder, Plot, Ergebnis und Regler. Sonst
- * ein Schritt auf einmal mit Zurück und Weiter unten.
+ * ein Schritt auf einmal (Text und Hinweis) mit Zurück und Weiter unten; auf dem Telefon steht oben
+ * das Beispiel (`ExamplesSheet`), ab `compact:` steht es im Header.
  */
 export function GuidePage({
   preset,
+  onPreset,
   active,
   onOpenInAnimator,
 }: {
   preset: Preset
+  /** Ein anderes Beispiel; auf dem Telefon aus dem Blatt oben in der Anleitung */
+  onPreset: (p: Preset) => void
   /** Die Seite ist zu sehen; der Regler misst sich dann neu (versteckt hat er keine Breite) */
   active: boolean
   onOpenInAnimator: (p: Preset) => void
@@ -258,6 +263,8 @@ export function GuidePage({
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Seitlich abgeschnitten: der Text eines neuen Schritts gleitet 24 px von der Seite herein */}
         <div className="relative flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-3 compact:px-6">
+          {/* Ab `compact:` steht das Beispiel im Header */}
+          <ExamplesSheet value={preset} onPreset={onPreset} className="shrink-0 compact:hidden" />
           <div className="flex shrink-0 flex-col gap-1.5">
             <div className="grid grid-cols-4 gap-1" aria-hidden>
               {STEPS.map((x, i) => (
@@ -275,7 +282,10 @@ export function GuidePage({
           <div ref={textRef} className="flex shrink-0 flex-col gap-1">
             <h2 className="font-heading text-base font-semibold">{localized(s.title)}</h2>
             <Tex math={s.tex} className="relative overflow-x-auto overflow-y-hidden" />
-            <p className="mt-1 text-muted-foreground">{localized(s.text)}</p>
+            <div className="mt-1 flex flex-col gap-1.5 text-muted-foreground">
+              <p>{localized(s.text)}</p>
+              <p>{localized(s.hint)}</p>
+            </div>
           </div>
           {plot}
           <TSlider key={String(active)} result={result} playhead={playhead} wide={false} />
