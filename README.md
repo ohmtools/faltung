@@ -69,7 +69,6 @@ Rootless-Quadlet in `~/.config/containers/systemd/`, `faltung.network`:
 
 ```ini
 [Container]
-ContainerName=faltung
 Image=ghcr.io/ohmtools/faltung:latest
 AutoUpdate=registry
 PublishPort=[::1]:8080:8080
